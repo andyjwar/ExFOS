@@ -574,6 +574,71 @@
   color: var(--fm-text-strong);
 }
 
+.table-scroll--win-margin {
+  margin-top: 4px;
+}
+
+.win-margin-table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.win-margin-table th,
+.win-margin-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--fm-border);
+  vertical-align: middle;
+}
+
+.win-margin-table thead th {
+  font-weight: 600;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #fafafa;
+  color: var(--fm-text);
+}
+
+.win-margin-table__team {
+  text-align: left;
+  min-width: 8.5rem;
+}
+
+.win-margin-table tbody th.win-margin-table__team {
+  font-weight: 500;
+}
+
+.win-margin-table__team-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.win-margin-table__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.win-margin-table__n {
+  text-align: center;
+  width: 2.35rem;
+}
+
+.win-margin-table__sum {
+  text-align: center;
+  width: 2.25rem;
+  border-left: 1px solid var(--fm-border);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.win-margin-table thead .win-margin-table__sum {
+  border-left: 1px solid var(--fm-border);
+}
+
 .waiver-totals-list--grid {
   margin-top: 0 !important;
 }

@@ -32,6 +32,30 @@ async function fetchFirstOptional(paths) {
   return null;
 }
 
+/** H2H win margin → column key (wins by exactly N pts, or range). */
+export const WIN_MARGIN_BUCKET_KEYS = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5-10',
+  '11-15',
+  '16-20',
+  '21+',
+];
+
+function winMarginBucketKey(margin) {
+  const m = Number(margin);
+  if (m === 1) return '1';
+  if (m === 2) return '2';
+  if (m === 3) return '3';
+  if (m === 4) return '4';
+  if (m >= 5 && m <= 10) return '5-10';
+  if (m >= 11 && m <= 15) return '11-15';
+  if (m >= 16 && m <= 20) return '16-20';
+  return '21+';
+}
+
 /** element_type 1 = GKP — excluded: cheap keeper churn dominates waivers but isn’t useful for this list */
 const OUTFIELD_TYPES = new Set([2, 3, 4]);
 /** FPL element IDs omitted from this list (e.g. suspected bad/misleading waiver attribution). */
@@ -325,6 +349,68 @@ function processLeagueData(raw, extras = {}) {
   }));
 
   const sortedByRank = [...standings].sort((a, b) => a.rank - b.rank);
+
+  const winMarginByEntry = {};
+  for (const e of leagueEntries || []) {
+    if (e?.id == null) continue;
+    winMarginByEntry[e.id] = Object.fromEntries(
+      WIN_MARGIN_BUCKET_KEYS.map((k) => [k, 0])
+    );
+  }
+  for (const m of matches || []) {
+    if (!m.finished) continue;
+    const p1 = m.league_entry_1_points ?? 0;
+    const p2 = m.league_entry_2_points ?? 0;
+    if (p1 === p2) continue;
+    const winner =
+      p1 > p2 ? m.league_entry_1 : m.league_entry_2;
+    const margin = Math.abs(p1 - p2);
+    const key = winMarginBucketKey(margin);
+    if (winMarginByEntry[winner]) {
+      winMarginByEntry[winner][key] += 1;
+    }
+  }
+  const winMarginBucketRows = sortedByRank.map((s) => {
+    const b = winMarginByEntry[s.league_entry] ?? {};
+    const totalWins = WIN_MARGIN_BUCKET_KEYS.reduce((sum, k) => sum + (b[k] ?? 0), 0);
+    return {
+      league_entry: s.league_entry,
+      teamName: s.teamName,
+      buckets: b,
+      totalWins,
+    };
+  });
+
+  const lossMarginByEntry = {};
+  for (const e of leagueEntries || []) {
+    if (e?.id == null) continue;
+    lossMarginByEntry[e.id] = Object.fromEntries(
+      WIN_MARGIN_BUCKET_KEYS.map((k) => [k, 0])
+    );
+  }
+  for (const m of matches || []) {
+    if (!m.finished) continue;
+    const p1 = m.league_entry_1_points ?? 0;
+    const p2 = m.league_entry_2_points ?? 0;
+    if (p1 === p2) continue;
+    const loser = p1 < p2 ? m.league_entry_1 : m.league_entry_2;
+    const margin = Math.abs(p1 - p2);
+    const key = winMarginBucketKey(margin);
+    if (lossMarginByEntry[loser]) {
+      lossMarginByEntry[loser][key] += 1;
+    }
+  }
+  const lossMarginBucketRows = sortedByRank.map((s) => {
+    const b = lossMarginByEntry[s.league_entry] ?? {};
+    const totalLosses = WIN_MARGIN_BUCKET_KEYS.reduce((sum, k) => sum + (b[k] ?? 0), 0);
+    return {
+      league_entry: s.league_entry,
+      teamName: s.teamName,
+      buckets: b,
+      totalLosses,
+    };
+  });
+
   const finished = matches.filter((m) => m.finished);
 
   const tableRows = sortedByRank.map((s) => {
@@ -606,6 +692,8 @@ function processLeagueData(raw, extras = {}) {
     waiverOutPointsByTeam,
     waiverInTenureTopRows,
     waiverInPointsByTeam,
+    winMarginBucketRows,
+    lossMarginBucketRows,
     isSampleData,
   };
 }

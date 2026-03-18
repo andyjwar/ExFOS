@@ -1,5 +1,9 @@
 import { useState, useMemo } from 'react'
-import { useLeagueData, FORM_LAST_N } from './useLeagueData'
+import {
+  useLeagueData,
+  FORM_LAST_N,
+  WIN_MARGIN_BUCKET_KEYS,
+} from './useLeagueData'
 import { TeamAvatar } from './TeamAvatar'
 import './App.css'
 
@@ -159,6 +163,8 @@ function App() {
     waiverOutPointsByTeam,
     waiverInTenureTopRows,
     waiverInPointsByTeam,
+    winMarginBucketRows,
+    lossMarginBucketRows,
   } = data
 
   const defaultFormEntry = teamsForFormSelect[0]?.id
@@ -444,6 +450,150 @@ function App() {
               </ol>
             ) : (
               <p className="muted muted--tight">No finished matches yet.</p>
+            )}
+          </section>
+
+          <section
+            className="tile tile--compact"
+            aria-labelledby="win-margin-buckets-heading"
+          >
+            <h2 id="win-margin-buckets-heading" className="tile-title tile-title--sm">
+              Wins by margin
+            </h2>
+            <p className="tile-hint muted tile-hint--tight">
+              Count of H2H wins where you won by that many FPL points (e.g. 41–40 → 1). Draws
+              excluded. <strong>Σ</strong> = total wins.
+            </p>
+            {winMarginBucketRows?.some((r) => r.totalWins > 0) ? (
+              <div className="table-scroll table-scroll--win-margin">
+                <table className="win-margin-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="win-margin-table__team">
+                        Team
+                      </th>
+                      {WIN_MARGIN_BUCKET_KEYS.map((k) => (
+                        <th
+                          key={k}
+                          scope="col"
+                          className="win-margin-table__n tabular"
+                          title={
+                            k === '21+'
+                              ? 'Won by 21 or more'
+                              : k.includes('-')
+                                ? `Won by ${k.replace('-', '–')} pts`
+                                : `Won by exactly ${k}`
+                          }
+                        >
+                          {k}
+                        </th>
+                      ))}
+                      <th scope="col" className="win-margin-table__sum tabular" title="Total wins">
+                        Σ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {winMarginBucketRows.map((row) => (
+                      <tr key={row.league_entry}>
+                        <th scope="row" className="win-margin-table__team">
+                          <span className="win-margin-table__team-inner">
+                            <TeamAvatar
+                              entryId={row.league_entry}
+                              name={row.teamName}
+                              size="sm"
+                              logoMap={teamLogoMap}
+                            />
+                            <span className="win-margin-table__name">{row.teamName}</span>
+                          </span>
+                        </th>
+                        {WIN_MARGIN_BUCKET_KEYS.map((k) => (
+                          <td key={k} className="tabular win-margin-table__n">
+                            {row.buckets[k] ?? 0}
+                          </td>
+                        ))}
+                        <td className="tabular win-margin-table__sum">
+                          <strong>{row.totalWins}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted muted--tight">No wins in finished matches yet.</p>
+            )}
+          </section>
+
+          <section
+            className="tile tile--compact"
+            aria-labelledby="loss-margin-buckets-heading"
+          >
+            <h2 id="loss-margin-buckets-heading" className="tile-title tile-title--sm">
+              Losses by margin
+            </h2>
+            <p className="tile-hint muted tile-hint--tight">
+              Count of H2H losses where you lost by that many FPL points (e.g. 40–41 → 1). Draws
+              excluded. <strong>Σ</strong> = total losses.
+            </p>
+            {lossMarginBucketRows?.some((r) => r.totalLosses > 0) ? (
+              <div className="table-scroll table-scroll--win-margin">
+                <table className="win-margin-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="win-margin-table__team">
+                        Team
+                      </th>
+                      {WIN_MARGIN_BUCKET_KEYS.map((k) => (
+                        <th
+                          key={k}
+                          scope="col"
+                          className="win-margin-table__n tabular"
+                          title={
+                            k === '21+'
+                              ? 'Lost by 21 or more'
+                              : k.includes('-')
+                                ? `Lost by ${k.replace('-', '–')} pts`
+                                : `Lost by exactly ${k}`
+                          }
+                        >
+                          {k}
+                        </th>
+                      ))}
+                      <th scope="col" className="win-margin-table__sum tabular" title="Total losses">
+                        Σ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lossMarginBucketRows.map((row) => (
+                      <tr key={row.league_entry}>
+                        <th scope="row" className="win-margin-table__team">
+                          <span className="win-margin-table__team-inner">
+                            <TeamAvatar
+                              entryId={row.league_entry}
+                              name={row.teamName}
+                              size="sm"
+                              logoMap={teamLogoMap}
+                            />
+                            <span className="win-margin-table__name">{row.teamName}</span>
+                          </span>
+                        </th>
+                        {WIN_MARGIN_BUCKET_KEYS.map((k) => (
+                          <td key={k} className="tabular win-margin-table__n">
+                            {row.buckets[k] ?? 0}
+                          </td>
+                        ))}
+                        <td className="tabular win-margin-table__sum">
+                          <strong>{row.totalLosses}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted muted--tight">No losses in finished matches yet.</p>
             )}
           </section>
               </div>
