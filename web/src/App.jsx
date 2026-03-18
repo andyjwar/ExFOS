@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useLeagueData, FORM_LAST_N } from './useLeagueData'
 import { TeamAvatar } from './TeamAvatar'
 import './App.css'
@@ -50,6 +50,66 @@ function PlayerKit({ shirtUrl, badgeUrl, teamShort }) {
 function App() {
   const { data, error, loading } = useLeagueData()
   const [formTeamId, setFormTeamId] = useState(null)
+  const [waiverOutTeamFilter, setWaiverOutTeamFilter] = useState('all')
+  const [waiverOutGwFilter, setWaiverOutGwFilter] = useState('all')
+  const [waiverGwTableMode, setWaiverGwTableMode] = useState('out')
+  const [dashboardView, setDashboardView] = useState('standings')
+
+  const waiverOutTeamOptions = useMemo(() => {
+    const rows = data?.waiverOutGwRows ?? []
+    const m = new Map()
+    for (const r of rows) {
+      if (r.entry != null && !m.has(r.entry)) {
+        m.set(r.entry, r.teamName ?? `Team ${r.entry}`)
+      }
+    }
+    return [...m.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])))
+  }, [data?.waiverOutGwRows])
+
+  const waiverOutGwOptions = useMemo(() => {
+    const rows = data?.waiverOutGwRows ?? []
+    const s = new Set(rows.map((r) => r.gameweek).filter((g) => g != null))
+    return [...s].sort((a, b) => a - b)
+  }, [data?.waiverOutGwRows])
+
+  const filteredWaiverOutRows = useMemo(() => {
+    const rows = data?.waiverOutGwRows ?? []
+    return rows.filter((r) => {
+      if (
+        waiverOutTeamFilter !== 'all' &&
+        Number(r.entry) !== Number(waiverOutTeamFilter)
+      ) {
+        return false
+      }
+      if (
+        waiverOutGwFilter !== 'all' &&
+        Number(r.gameweek) !== Number(waiverOutGwFilter)
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [data?.waiverOutGwRows, waiverOutTeamFilter, waiverOutGwFilter])
+
+  const waiverOutTeamPointsTotal = useMemo(() => {
+    if (waiverOutTeamFilter === 'all') return null
+    let sum = 0
+    let missing = 0
+    for (const r of filteredWaiverOutRows) {
+      const v =
+        waiverGwTableMode === 'out'
+          ? r.droppedPlayerGwPoints
+          : r.pickedUpPlayerGwPoints
+      if (typeof v === 'number') sum += v
+      else missing += 1
+    }
+    return {
+      sum,
+      missing,
+      rowCount: filteredWaiverOutRows.length,
+      mode: waiverGwTableMode,
+    }
+  }, [filteredWaiverOutRows, waiverOutTeamFilter, waiverGwTableMode])
 
   if (loading) {
     return (
@@ -98,6 +158,7 @@ function App() {
     waiverOutGwRows,
     waiverOutPointsByTeam,
     waiverInTenureTopRows,
+    waiverInPointsByTeam,
   } = data
 
   const defaultFormEntry = teamsForFormSelect[0]?.id
@@ -162,16 +223,42 @@ function App() {
         )}
       </header>
 
-      <main className="dashboard-layout">
-        <aside className="dashboard-sidebar">
-          <section className="tile tile--standings">
-            <div className="table-head-bar">
-              <span className="league-pill league-pill--lg">
-                <span className="league-pill__icon" aria-hidden>
-                  ⚽
-                </span>
-                <span>Standings</span>
-              </span>
+      <main className="dashboard-layout dashboard-layout--with-nav">
+        <nav className="dashboard-nav" aria-label="Dashboard sections">
+          <button
+            type="button"
+            className={
+              'dashboard-nav__btn' +
+              (dashboardView === 'standings' ? ' dashboard-nav__btn--active' : '')
+            }
+            onClick={() => setDashboardView('standings')}
+            aria-current={dashboardView === 'standings' ? 'page' : undefined}
+          >
+            Standings &amp; Form
+          </button>
+          <button
+            type="button"
+            className={
+              'dashboard-nav__btn' +
+              (dashboardView === 'waivers' ? ' dashboard-nav__btn--active' : '')
+            }
+            onClick={() => setDashboardView('waivers')}
+            aria-current={dashboardView === 'waivers' ? 'page' : undefined}
+          >
+            Waivers
+          </button>
+        </nav>
+        <div className="dashboard-content">
+          {dashboardView === 'standings' && (
+            <>
+              <section
+                className="tile tile--standings"
+                aria-labelledby="standings-heading"
+              >
+            <div className="tile-head-row tile-head-row--tight">
+              <h2 id="standings-heading" className="tile-title tile-title--sm">
+                Standings
+              </h2>
             </div>
             <div className="table-scroll table-scroll--standings-open">
               <table className="standings-table standings-table--sidebar">
@@ -183,10 +270,15 @@ function App() {
                     <th className="col-num">W</th>
                     <th className="col-num">D</th>
                     <th className="col-num">L</th>
-                    <th className="col-num col-pfpa">+/-</th>
+                    <th
+                      className="col-num col-for"
+                      title="Your team’s total FPL points in every H2H gameweek"
+                    >
+                      For
+                    </th>
                     <th
                       className="col-num col-faced"
-                      title="Total opponent FPL points in every H2H gameweek (combined)"
+                      title="Opponents’ total FPL points in every H2H gameweek"
                     >
                       Faced
                     </th>
@@ -199,7 +291,6 @@ function App() {
                 <tbody>
                   {tableRows.map((row) => {
                     const isLeader = row.rank === 1
-                    const plusMinus = `${row.gf}-${row.ga}`
                     return (
                       <tr key={row.league_entry} className={isLeader ? 'row-highlight' : undefined}>
                         <td className="col-rank">{row.rank}</td>
@@ -213,8 +304,10 @@ function App() {
                         <td className="col-num">{row.matches_won}</td>
                         <td className="col-num">{row.matches_drawn}</td>
                         <td className="col-num">{row.matches_lost}</td>
-                        <td className="col-num col-pfpa tabular">{plusMinus}</td>
-                        <td className="col-num col-faced tabular" title="Combined opponent points across all GWs">
+                        <td className="col-num col-for tabular" title="Your points for, all GWs">
+                          {row.gf}
+                        </td>
+                        <td className="col-num col-faced tabular" title="Opponent points faced, all GWs">
                           {row.ga}
                         </td>
                         <td className="col-num tabular">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
@@ -238,13 +331,12 @@ function App() {
               </table>
             </div>
             <p className="table-foot muted">
-              Form = last {FORM_LAST_N} H2H. <strong>Faced</strong> = sum of opponent FPL points in every gameweek
-              combined.
+              Form = last {FORM_LAST_N} H2H. <strong>For</strong> / <strong>Faced</strong> = your team’s vs
+              opponents’ total FPL points across all H2H gameweeks.
             </p>
           </section>
-        </aside>
 
-        <div className="dashboard-main dashboard-main--compact">
+              <div className="dashboard-stack">
           <section className="tile tile--compact">
             <div className="tile-head-row tile-head-row--tight">
               <h2 className="tile-title tile-title--sm">Previous game week</h2>
@@ -325,10 +417,133 @@ function App() {
             </div>
           </section>
 
+          <section className="tile tile--compact" aria-labelledby="points-against-heading">
+            <div className="tile-head-row tile-head-row--tight">
+              <h2 id="points-against-heading" className="tile-title tile-title--sm">
+                Points against
+              </h2>
+            </div>
+            <p className="tile-hint muted tile-hint--tight">
+              Total FPL points scored by opponents in every head-to-head gameweek (season to date).
+            </p>
+            {pointsAgainstList?.length ? (
+              <ol className="pa-list">
+                {pointsAgainstList.map((row, i) => (
+                  <li key={row.league_entry} className="pa-row">
+                    <span className="pa-rank">{i + 1}</span>
+                    <TeamAvatar
+                      entryId={row.league_entry}
+                      name={row.teamName}
+                      size="sm"
+                      logoMap={teamLogoMap}
+                    />
+                    <span className="pa-team">{row.teamName}</span>
+                    <span className="pa-value tabular">{row.pointsAgainst}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="muted muted--tight">No finished matches yet.</p>
+            )}
+          </section>
+              </div>
+            </>
+          )}
+
+          {dashboardView === 'waivers' && (
+            <div className="dashboard-stack">
+          <section className="tile tile--compact" aria-labelledby="waiver-in-by-team-heading">
+            <div className="tile-head-row tile-head-row--tight">
+              <h2 id="waiver-in-by-team-heading" className="tile-title tile-title--sm">
+                Waiver in - team totals
+              </h2>
+            </div>
+            <p className="tile-hint muted tile-hint--tight">
+              Total FPL points scored by every player this team has <strong>waivered in</strong>,
+              from pickup until they left (same method as Best waiver pickups).{' '}
+              <strong>Players</strong> = distinct waiver pickups. <strong>Avg</strong> = total ÷
+              players. Sorted by avg (highest first).
+            </p>
+            {waiverInPointsByTeam?.length ? (
+              <div className="waiver-in-team-wrap">
+                <table className="waiver-in-team-table">
+                  <colgroup>
+                    <col className="waiver-in-team-col-rank" />
+                    <col className="waiver-in-team-col-logo" />
+                    <col />
+                    <col className="waiver-in-team-col-num" />
+                    <col className="waiver-in-team-col-num" />
+                    <col className="waiver-in-team-col-total" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th className="waiver-in-team__rank" scope="col">
+                        #
+                      </th>
+                      <th className="waiver-in-team__logo" scope="col" aria-hidden>
+                        {' '}
+                      </th>
+                      <th className="waiver-in-team__team" scope="col">
+                        Team
+                      </th>
+                      <th className="waiver-in-team__num" scope="col">
+                        Pl.
+                      </th>
+                      <th className="waiver-in-team__num" scope="col">
+                        Avg
+                      </th>
+                      <th className="waiver-in-team__num" scope="col">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {waiverInPointsByTeam.map((t, i) => (
+                      <tr key={t.league_entry}>
+                        <td className="waiver-in-team__rank tabular">{i + 1}</td>
+                        <td className="waiver-in-team__logo">
+                          <TeamAvatar
+                            entryId={t.league_entry}
+                            name={t.teamName}
+                            size="sm"
+                            logoMap={teamLogoMap}
+                          />
+                        </td>
+                        <td className="waiver-in-team__team">
+                          <span className="waiver-in-team__name">{t.teamName}</span>
+                        </td>
+                        <td className="waiver-in-team__num tabular">{t.distinctWaiverPlayers}</td>
+                        <td
+                          className="waiver-in-team__num tabular"
+                          title={
+                            t.averageWaiverInPerPlayer != null
+                              ? `${t.totalWaiverInPoints} ÷ ${t.distinctWaiverPlayers} players`
+                              : undefined
+                          }
+                        >
+                          {t.averageWaiverInPerPlayer != null
+                            ? t.averageWaiverInPerPlayer.toFixed(1)
+                            : '—'}
+                        </td>
+                        <td className="waiver-in-team__num waiver-in-team__num--total tabular">
+                          {t.totalWaiverInPoints}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted muted--tight">
+                Run a full build to generate <code>waiver-in-tenure-top.json</code>.
+              </p>
+            )}
+          </section>
+
           <section className="tile tile--compact" aria-labelledby="waiver-out-totals-heading">
             <div className="tile-head-row tile-head-row--tight">
               <h2 id="waiver-out-totals-heading" className="tile-title tile-title--sm">
-                Waived out — team totals
+                Waived out - team totals
               </h2>
             </div>
             <p className="tile-hint muted tile-hint--tight">
@@ -402,71 +617,134 @@ function App() {
               </h2>
             </div>
             <p className="tile-hint muted tile-hint--tight">
-              When a successful waiver adds a player, the dropped player’s FPL points that same
-              gameweek (from the official live data for that GW).
+              Per successful waiver: <strong>Waivers out</strong> = points the dropped player scored
+              that GW; <strong>Waivers in</strong> = points the picked-up player scored that GW (same
+              official live data). Filter by team and gameweek.
             </p>
             {waiverOutGwRows?.length ? (
-              <div className="waiver-gw-table-wrap">
-                <table className="waiver-gw-table">
-                  <thead>
-                    <tr>
-                      <th>Team</th>
-                      <th>GW</th>
-                      <th>Dropped</th>
-                      <th className="tabular">Pts</th>
-                      <th>Picked up</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {waiverOutGwRows.map((r) => (
-                      <tr key={r.transactionId}>
-                        <td className="waiver-gw-team">{r.teamName}</td>
-                        <td className="tabular">{r.gameweek}</td>
-                        <td>{r.droppedName}</td>
-                        <td className="tabular fw-600">
-                          {r.droppedPlayerGwPoints == null ? '—' : r.droppedPlayerGwPoints}
-                        </td>
-                        <td className="muted">{r.pickedName}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="waiver-out-filters">
+                  <div className="waiver-out-filter">
+                    <label htmlFor="waiver-gw-mode-filter">Type</label>
+                    <select
+                      id="waiver-gw-mode-filter"
+                      className="waiver-out-filter__select"
+                      value={waiverGwTableMode}
+                      onChange={(e) =>
+                        setWaiverGwTableMode(e.target.value === 'in' ? 'in' : 'out')
+                      }
+                    >
+                      <option value="out">Waivers out</option>
+                      <option value="in">Waivers in</option>
+                    </select>
+                  </div>
+                  <div className="waiver-out-filter">
+                    <label htmlFor="waiver-out-team-filter">Team</label>
+                    <select
+                      id="waiver-out-team-filter"
+                      className="waiver-out-filter__select"
+                      value={waiverOutTeamFilter}
+                      onChange={(e) => setWaiverOutTeamFilter(e.target.value)}
+                    >
+                      <option value="all">All teams</option>
+                      {waiverOutTeamOptions.map(([entry, name]) => (
+                        <option key={entry} value={String(entry)}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="waiver-out-filter">
+                    <label htmlFor="waiver-out-gw-filter">Gameweek</label>
+                    <select
+                      id="waiver-out-gw-filter"
+                      className="waiver-out-filter__select"
+                      value={waiverOutGwFilter}
+                      onChange={(e) => setWaiverOutGwFilter(e.target.value)}
+                    >
+                      <option value="all">All gameweeks</option>
+                      {waiverOutGwOptions.map((gw) => (
+                        <option key={gw} value={String(gw)}>
+                          GW {gw}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {waiverOutTeamPointsTotal && (
+                  <p className="waiver-out-sum-banner">
+                    <strong>Total</strong>{' '}
+                    {waiverOutTeamPointsTotal.mode === 'in'
+                      ? 'picked-up player GW points'
+                      : 'dropped-player GW points'}
+                    :{' '}
+                    <span className="tabular waiver-out-sum-banner__num">
+                      {waiverOutTeamPointsTotal.sum}
+                    </span>
+                    <span className="muted">
+                      {' '}
+                      ({waiverOutTeamPointsTotal.rowCount} waiver
+                      {waiverOutTeamPointsTotal.rowCount === 1 ? '' : 's'}
+                      {waiverOutGwFilter !== 'all' ? ` · GW ${waiverOutGwFilter}` : ''}
+                      {waiverOutTeamPointsTotal.missing > 0
+                        ? ` · ${waiverOutTeamPointsTotal.missing} row(s) no GW data`
+                        : ''}
+                      )
+                    </span>
+                  </p>
+                )}
+                <div className="waiver-gw-table-wrap">
+                  {filteredWaiverOutRows.length ? (
+                    <table className="waiver-gw-table">
+                      <thead>
+                        <tr>
+                          <th>Team</th>
+                          <th>GW</th>
+                          <th>
+                            {waiverGwTableMode === 'out' ? 'Waived out' : 'Waived in'}
+                          </th>
+                          <th className="tabular">Pts</th>
+                          <th className="muted">
+                            {waiverGwTableMode === 'out' ? 'Waived in' : 'Waived out'}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredWaiverOutRows.map((r) => {
+                          const primaryPts =
+                            waiverGwTableMode === 'out'
+                              ? r.droppedPlayerGwPoints
+                              : r.pickedUpPlayerGwPoints
+                          const primaryName =
+                            waiverGwTableMode === 'out' ? r.droppedName : r.pickedName
+                          const otherName =
+                            waiverGwTableMode === 'out' ? r.pickedName : r.droppedName
+                          return (
+                            <tr key={r.transactionId}>
+                              <td className="waiver-gw-team">{r.teamName}</td>
+                              <td className="tabular">{r.gameweek}</td>
+                              <td>{primaryName}</td>
+                              <td className="tabular fw-600">
+                                {primaryPts == null ? '—' : primaryPts}
+                              </td>
+                              <td className="muted">{otherName}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="muted muted--tight waiver-out-empty">
+                      No waivers match these filters.
+                    </p>
+                  )}
+                </div>
+              </>
             ) : (
               <p className="muted muted--tight">
                 Run a full build after <code>ingest</code> — this table is built from{' '}
                 <code>transactions.json</code> + FPL event/live per GW.
               </p>
-            )}
-          </section>
-
-          <section className="tile tile--compact" aria-labelledby="points-against-heading">
-            <div className="tile-head-row tile-head-row--tight">
-              <h2 id="points-against-heading" className="tile-title tile-title--sm">
-                Points against
-              </h2>
-            </div>
-            <p className="tile-hint muted tile-hint--tight">
-              Total FPL points scored by opponents in every head-to-head gameweek (season to date).
-            </p>
-            {pointsAgainstList?.length ? (
-              <ol className="pa-list">
-                {pointsAgainstList.map((row, i) => (
-                  <li key={row.league_entry} className="pa-row">
-                    <span className="pa-rank">{i + 1}</span>
-                    <TeamAvatar
-                      entryId={row.league_entry}
-                      name={row.teamName}
-                      size="sm"
-                      logoMap={teamLogoMap}
-                    />
-                    <span className="pa-team">{row.teamName}</span>
-                    <span className="pa-value tabular">{row.pointsAgainst}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="muted muted--tight">No finished matches yet.</p>
             )}
           </section>
 
@@ -537,6 +815,8 @@ function App() {
               </p>
             )}
           </section>
+            </div>
+          )}
 
           <footer className="page-footer muted">
             Data from{' '}

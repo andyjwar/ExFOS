@@ -124,10 +124,19 @@ async function main() {
   const rowsOut = waiversDrop.map((t) => {
     const gw = Number(t.event)
     const outId = Number(t.element_out)
+    const inId =
+      t.element_in != null && t.element_in !== '' ? Number(t.element_in) : null
     const map = cache[gw]
-    const pts =
+    const ptsOut =
       map && Object.prototype.hasOwnProperty.call(map, outId)
         ? map[outId]
+        : null
+    const ptsIn =
+      inId != null &&
+      !Number.isNaN(inId) &&
+      map &&
+      Object.prototype.hasOwnProperty.call(map, inId)
+        ? map[inId]
         : null
     return {
       transactionId: t.id,
@@ -136,7 +145,8 @@ async function main() {
       element_in: t.element_in,
       element_out: outId,
       added: t.added ?? null,
-      droppedPlayerGwPoints: pts,
+      droppedPlayerGwPoints: ptsOut,
+      pickedUpPlayerGwPoints: ptsIn,
     }
   })
   rowsOut.sort((a, b) => {
@@ -150,7 +160,7 @@ async function main() {
     JSON.stringify(
       {
         generated: new Date().toISOString(),
-        note: 'droppedPlayerGwPoints = FPL points for element_out in gameweek (from event/live)',
+        note: 'droppedPlayerGwPoints / pickedUpPlayerGwPoints = FPL pts that GW for element_out / element_in (event/live)',
         rows: rowsOut,
       },
       null,
@@ -224,6 +234,26 @@ async function main() {
     .slice(0, 10)
     .map((r, idx) => ({ rank: idx + 1, ...r }))
 
+  /** Sum tenure pts for every distinct player ever waivered in, grouped by team (entry_id). */
+  const byEntryTeam = new Map()
+  for (const v of agg.values()) {
+    if (!byEntryTeam.has(v.entry)) {
+      byEntryTeam.set(v.entry, {
+        entry: v.entry,
+        totalWaiverInPoints: 0,
+        distinctPlayers: 0,
+      })
+    }
+    const t = byEntryTeam.get(v.entry)
+    t.totalWaiverInPoints += v.totalPointsForTeam
+    t.distinctPlayers += 1
+  }
+  const teamWaiverInTotals = [...byEntryTeam.values()].sort(
+    (a, b) =>
+      b.totalWaiverInPoints - a.totalWaiverInPoints ||
+      a.entry - b.entry
+  )
+
   writeFileSync(
     outWaiverInTop,
     JSON.stringify(
@@ -232,6 +262,7 @@ async function main() {
         note: 'Total FPL pts while on squad after waiver-in, through GW before drop (or last finished GW). Same player re-waived: stints summed.',
         lastGwUsed: lastGw,
         rows: top10,
+        teamWaiverInTotals,
       },
       null,
       2
@@ -239,7 +270,7 @@ async function main() {
   )
 
   console.log(
-    `build-waiver-gw-analytics: waiver-out ${rowsOut.length} rows; waiver-in top-10 → waiver-in-tenure-top.json (${top10.length} rows)`
+    `build-waiver-gw-analytics: waiver-out ${rowsOut.length} rows; top-10 + ${teamWaiverInTotals.length} team waiver-in totals → waiver-in-tenure-top.json`
   )
 }
 

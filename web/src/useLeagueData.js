@@ -486,6 +486,41 @@ function processLeagueData(raw, extras = {}) {
     }
   );
 
+  const waiverInByTeamMap = new Map(
+    (extras.waiverInTenureTop?.teamWaiverInTotals || []).map((t) => [
+      t.entry,
+      t,
+    ])
+  );
+  const waiverInPointsByTeam = sortedByRank
+    .map((s) => {
+      const entryId = teams[s.league_entry]?.entry_id ?? s.league_entry;
+      const o = waiverInByTeamMap.get(entryId);
+      const totalWaiverInPoints = o?.totalWaiverInPoints ?? 0;
+      const distinctWaiverPlayers = o?.distinctPlayers ?? 0;
+      const averageWaiverInPerPlayer =
+        distinctWaiverPlayers > 0
+          ? Math.round((totalWaiverInPoints / distinctWaiverPlayers) * 10) / 10
+          : null;
+      return {
+        league_entry: s.league_entry,
+        teamName: s.teamName,
+        totalWaiverInPoints,
+        distinctWaiverPlayers,
+        averageWaiverInPerPlayer,
+      };
+    })
+    .sort((a, b) => {
+      const avg = (t) =>
+        t.distinctWaiverPlayers > 0 ? t.averageWaiverInPerPlayer ?? 0 : -Infinity;
+      const byAvg = avg(b) - avg(a);
+      if (byAvg !== 0) return byAvg;
+      return (
+        b.totalWaiverInPoints - a.totalWaiverInPoints ||
+        a.teamName.localeCompare(b.teamName)
+      );
+    });
+
   /** Per team: sum of dropped players’ GW points on every successful waiver (transaction.entry = entry_id). */
   const waiverOutPointsByTeam = sortedByRank
     .map((s) => {
@@ -556,6 +591,7 @@ function processLeagueData(raw, extras = {}) {
     waiverOutGwRows,
     waiverOutPointsByTeam,
     waiverInTenureTopRows,
+    waiverInPointsByTeam,
     isSampleData,
   };
 }

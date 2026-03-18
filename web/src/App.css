@@ -27,7 +27,7 @@
   padding: 20px 16px 48px;
 }
 
-/* —— Dashboard: wide standings left, compact feed right —— */
+/* —— Dashboard: left nav + single panel —— */
 .dashboard-layout {
   display: grid;
   grid-template-columns: minmax(640px, 58%) minmax(300px, 42%);
@@ -35,9 +35,86 @@
   align-items: start;
 }
 
+.dashboard-layout--with-nav {
+  grid-template-columns: minmax(168px, 200px) minmax(0, 1fr);
+  gap: 18px 24px;
+  align-items: start;
+}
+
+.dashboard-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 12px;
+  align-self: start;
+}
+
+.dashboard-nav__btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--fm-text);
+  background: var(--fm-card);
+  border: 1px solid var(--fm-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.dashboard-nav__btn:hover {
+  background: var(--fm-row-hi);
+  color: var(--fm-text-strong);
+}
+
+.dashboard-nav__btn--active {
+  background: var(--fm-text-strong);
+  color: #fff;
+  border-color: var(--fm-text-strong);
+}
+
+.dashboard-nav__btn--active:hover {
+  background: #333;
+  color: #fff;
+}
+
+.dashboard-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 @media (max-width: 1080px) {
   .dashboard-layout {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-layout--with-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-nav__btn {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
   }
 
   .dashboard-sidebar {
@@ -94,6 +171,12 @@
   overflow: hidden;
 }
 
+.tile--standings > .tile-head-row {
+  padding: 10px 12px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--fm-border);
+}
+
 /* Full standings height — no vertical scroll */
 .table-scroll--standings-open {
   overflow-x: auto;
@@ -115,12 +198,9 @@
   line-height: 1.2;
 }
 
-.standings-table--sidebar .col-pfpa {
-  font-size: 0.62rem;
-  max-width: 52px;
-}
-
+.standings-table--sidebar .col-for,
 .standings-table--sidebar .col-faced {
+  font-size: 0.62rem;
   max-width: 44px;
   white-space: nowrap;
 }
@@ -275,10 +355,61 @@
   flex-shrink: 0;
 }
 
+.waiver-out-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.waiver-out-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.waiver-out-filter label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fm-text);
+}
+
+.waiver-out-filter__select {
+  min-width: 160px;
+  max-width: 100%;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  border: 1px solid var(--fm-border);
+  border-radius: 8px;
+  background: var(--fm-card);
+  color: var(--fm-text-strong);
+}
+
+.waiver-out-sum-banner {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+  color: var(--fm-text-strong);
+}
+
+.waiver-out-sum-banner__num {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.waiver-out-empty {
+  padding: 16px 12px;
+  text-align: center;
+}
+
 .waiver-gw-table-wrap {
   max-height: 320px;
   overflow: auto;
-  margin-top: 8px;
+  margin-top: 0;
   border: 1px solid var(--fm-border);
   border-radius: 8px;
 }
@@ -342,6 +473,105 @@
   justify-self: end;
   text-align: right;
   width: 100%;
+}
+
+.waiver-in-team-wrap {
+  margin-top: 8px;
+  overflow-x: auto;
+  border: 1px solid var(--fm-border);
+  border-radius: 8px;
+}
+
+.waiver-in-team-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.waiver-in-team-table th,
+.waiver-in-team-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--fm-border);
+  vertical-align: middle;
+}
+
+.waiver-in-team-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.waiver-in-team-table thead th {
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fm-text);
+  background: var(--fm-row-hi, #f3f3f3);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.waiver-in-team__rank {
+  width: 2rem;
+  text-align: center;
+  font-weight: 800;
+  color: var(--fm-text);
+}
+
+.waiver-in-team-table thead .waiver-in-team__rank {
+  text-align: center;
+}
+
+.waiver-in-team__logo {
+  width: 40px;
+  padding-left: 0 !important;
+  padding-right: 4px !important;
+}
+
+.waiver-in-team-col-rank {
+  width: 2.25rem;
+}
+
+.waiver-in-team-col-logo {
+  width: 42px;
+}
+
+.waiver-in-team-col-num {
+  width: 3.15rem;
+}
+
+.waiver-in-team-col-total {
+  width: 3.75rem;
+}
+
+.waiver-in-team__team {
+  min-width: 0;
+}
+
+.waiver-in-team__name {
+  display: block;
+  font-weight: 600;
+  color: var(--fm-text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waiver-in-team__num {
+  text-align: right;
+  padding-left: 8px !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--fm-text);
+}
+
+.waiver-in-team-table thead .waiver-in-team__num {
+  text-align: right;
+}
+
+.waiver-in-team__num--total {
+  font-weight: 800;
+  color: var(--fm-text-strong);
 }
 
 .waiver-totals-list--grid {
