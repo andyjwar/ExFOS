@@ -94,6 +94,10 @@ function App() {
     fetchFailedDemo,
     teamLogoMap,
     mostWaiveredPlayers,
+    pointsAgainstList,
+    waiverOutGwRows,
+    waiverOutPointsByTeam,
+    waiverInTenureTopRows,
   } = data
 
   const defaultFormEntry = teamsForFormSelect[0]?.id
@@ -180,6 +184,12 @@ function App() {
                     <th className="col-num">D</th>
                     <th className="col-num">L</th>
                     <th className="col-num col-pfpa">+/-</th>
+                    <th
+                      className="col-num col-faced"
+                      title="Total opponent FPL points in every H2H gameweek (combined)"
+                    >
+                      Faced
+                    </th>
                     <th className="col-num">GD</th>
                     <th className="col-num col-pts">PTS</th>
                     <th className="col-form">Form</th>
@@ -204,6 +214,9 @@ function App() {
                         <td className="col-num">{row.matches_drawn}</td>
                         <td className="col-num">{row.matches_lost}</td>
                         <td className="col-num col-pfpa tabular">{plusMinus}</td>
+                        <td className="col-num col-faced tabular" title="Combined opponent points across all GWs">
+                          {row.ga}
+                        </td>
                         <td className="col-num tabular">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
                         <td className="col-num col-pts">
                           <strong>{row.total}</strong>
@@ -224,7 +237,10 @@ function App() {
                 </tbody>
               </table>
             </div>
-            <p className="table-foot muted">Form = last {FORM_LAST_N} H2H.</p>
+            <p className="table-foot muted">
+              Form = last {FORM_LAST_N} H2H. <strong>Faced</strong> = sum of opponent FPL points in every gameweek
+              combined.
+            </p>
           </section>
         </aside>
 
@@ -307,6 +323,195 @@ function App() {
                 <p className="muted">No finished matches yet.</p>
               )}
             </div>
+          </section>
+
+          <section className="tile tile--compact" aria-labelledby="waiver-out-totals-heading">
+            <div className="tile-head-row tile-head-row--tight">
+              <h2 id="waiver-out-totals-heading" className="tile-title tile-title--sm">
+                Waived out — team totals
+              </h2>
+            </div>
+            <p className="tile-hint muted tile-hint--tight">
+              Sum of dropped players’ FPL points in the gameweek each waiver hit (same basis as the
+              table below). <strong>Avg</strong> = total ÷ waivers. Ordered by avg (highest first).
+            </p>
+            {waiverOutPointsByTeam?.some((t) => t.waiverOutCount > 0) ? (
+              <>
+                <div className="waiver-totals-grid-head" aria-hidden>
+                  <span className="waiver-totals-grid-head__rank">#</span>
+                  <span className="waiver-totals-grid-head__avatar" />
+                  <span className="waiver-totals-grid-head__team">Team</span>
+                  <span
+                    className="waiver-totals-grid-head__num tabular"
+                    title="Total dropped-player GW points"
+                  >
+                    Total
+                  </span>
+                  <span
+                    className="waiver-totals-grid-head__num tabular"
+                    title="Average GW points per waived-out player (total ÷ number of waivers)"
+                  >
+                    Avg
+                  </span>
+                </div>
+                <ol className="pa-list waiver-totals-list waiver-totals-list--grid">
+                  {waiverOutPointsByTeam.map((t, i) => (
+                    <li key={t.league_entry} className="waiver-total-row">
+                      <span className="waiver-total-row__rank">{i + 1}</span>
+                      <TeamAvatar
+                        entryId={t.league_entry}
+                        name={t.teamName}
+                        size="sm"
+                        logoMap={teamLogoMap}
+                      />
+                      <div className="waiver-total-main">
+                        <span className="pa-team">{t.teamName}</span>
+                        <span className="waiver-totals-meta muted">
+                          {t.waiverOutCount} waiver{t.waiverOutCount === 1 ? '' : 's'}
+                          {t.knownPtsCount < t.waiverOutCount
+                            ? ` · ${t.knownPtsCount}/${t.waiverOutCount} GW pts known`
+                            : ''}
+                        </span>
+                      </div>
+                      <span className="waiver-total-row__total tabular">{t.totalDroppedGwPoints}</span>
+                      <span
+                        className="waiver-total-row__avg tabular"
+                        title={
+                          t.waiverOutCount > 0
+                            ? `${t.totalDroppedGwPoints} ÷ ${t.waiverOutCount} waivers`
+                            : ''
+                        }
+                      >
+                        {t.waiverOutCount > 0 && t.averageDroppedGwPoints != null
+                          ? t.averageDroppedGwPoints.toFixed(1)
+                          : '—'}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : (
+              <p className="muted muted--tight">No waiver-out data yet — run a full ingest + build.</p>
+            )}
+          </section>
+
+          <section className="tile tile--compact" aria-labelledby="waiver-out-gw-heading">
+            <div className="tile-head-row tile-head-row--tight">
+              <h2 id="waiver-out-gw-heading" className="tile-title tile-title--sm">
+                Waived out — GW points
+              </h2>
+            </div>
+            <p className="tile-hint muted tile-hint--tight">
+              When a successful waiver adds a player, the dropped player’s FPL points that same
+              gameweek (from the official live data for that GW).
+            </p>
+            {waiverOutGwRows?.length ? (
+              <div className="waiver-gw-table-wrap">
+                <table className="waiver-gw-table">
+                  <thead>
+                    <tr>
+                      <th>Team</th>
+                      <th>GW</th>
+                      <th>Dropped</th>
+                      <th className="tabular">Pts</th>
+                      <th>Picked up</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {waiverOutGwRows.map((r) => (
+                      <tr key={r.transactionId}>
+                        <td className="waiver-gw-team">{r.teamName}</td>
+                        <td className="tabular">{r.gameweek}</td>
+                        <td>{r.droppedName}</td>
+                        <td className="tabular fw-600">
+                          {r.droppedPlayerGwPoints == null ? '—' : r.droppedPlayerGwPoints}
+                        </td>
+                        <td className="muted">{r.pickedName}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted muted--tight">
+                Run a full build after <code>ingest</code> — this table is built from{' '}
+                <code>transactions.json</code> + FPL event/live per GW.
+              </p>
+            )}
+          </section>
+
+          <section className="tile tile--compact" aria-labelledby="points-against-heading">
+            <div className="tile-head-row tile-head-row--tight">
+              <h2 id="points-against-heading" className="tile-title tile-title--sm">
+                Points against
+              </h2>
+            </div>
+            <p className="tile-hint muted tile-hint--tight">
+              Total FPL points scored by opponents in every head-to-head gameweek (season to date).
+            </p>
+            {pointsAgainstList?.length ? (
+              <ol className="pa-list">
+                {pointsAgainstList.map((row, i) => (
+                  <li key={row.league_entry} className="pa-row">
+                    <span className="pa-rank">{i + 1}</span>
+                    <TeamAvatar
+                      entryId={row.league_entry}
+                      name={row.teamName}
+                      size="sm"
+                      logoMap={teamLogoMap}
+                    />
+                    <span className="pa-team">{row.teamName}</span>
+                    <span className="pa-value tabular">{row.pointsAgainst}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="muted muted--tight">No finished matches yet.</p>
+            )}
+          </section>
+
+          <section className="tile tile--compact" aria-labelledby="waiver-in-tenure-heading">
+            <h2 id="waiver-in-tenure-heading" className="tile-title tile-title--sm">
+              Best waiver pickups
+            </h2>
+            <p className="tile-hint muted tile-hint--tight">
+              Top 10 player–team pairs by total FPL points from each <strong>waiver in</strong> until
+              that player left the squad (drop / swap). Same player re-waived later: stints added
+              together. Uses official GW live scores through the last finished gameweek.
+            </p>
+            {waiverInTenureTopRows?.length ? (
+              <ol className="waiver-list waiver-list--tight waiver-pickup-list">
+                {waiverInTenureTopRows.map((r) => (
+                  <li
+                    key={`${r.entry}-${r.elementId}`}
+                    className="waiver-row waiver-pickup-row"
+                  >
+                    <span className="waiver-rank">{r.rank}</span>
+                    <PlayerKit
+                      shirtUrl={r.shirtUrl}
+                      badgeUrl={r.badgeUrl}
+                      teamShort={r.teamShort}
+                    />
+                    <div className="waiver-info waiver-pickup-info">
+                      <span className="waiver-name">{r.playerName}</span>
+                      <span className="waiver-pickup-team">{r.teamName}</span>
+                      <span className="waiver-club muted">
+                        GW {r.firstGw}–{r.lastGw}
+                        {r.waiverStints > 1 ? ` · ${r.waiverStints} pickups` : ''}
+                      </span>
+                    </div>
+                    <span className="waiver-count tabular" title="Total pts for this team over those weeks">
+                      {r.totalPointsForTeam}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="muted muted--tight">
+                Run <code>npm run dev</code> / build so <code>waiver-in-tenure-top.json</code> is
+                generated (needs <code>transactions.json</code> + finished GWs).
+              </p>
+            )}
           </section>
 
           <section className="tile tile--compact">

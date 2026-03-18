@@ -58,6 +58,10 @@ if (entries < 2 || matches < 1) {
 
 console.log(`OK — league "${parsed.league?.name ?? '?'}" (${entries} teams, ${matches} matches)`)
 execFileSync('node', ['scripts/copy-data.js'], { cwd: webRoot, stdio: 'inherit' })
+execFileSync('node', ['scripts/build-waiver-gw-analytics.mjs'], {
+  cwd: webRoot,
+  stdio: 'inherit',
+})
 
 const out = join(webRoot, 'public', 'league-data', 'details.json')
 const check = JSON.parse(readFileSync(out, 'utf8'))

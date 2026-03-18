@@ -20,11 +20,27 @@ if (existsSync(ingestedDetails)) {
       copyFileSync(join(dataDir, f), join(dest, f));
     }
   }
-  console.log('League data copied from data/ → public/league-data/ (from ingest.py).');
+  try {
+    const d = JSON.parse(readFileSync(join(dest, 'details.json'), 'utf8'));
+    const n = d.league?.name ?? '?';
+    const nTeams = d.league_entries?.length ?? 0;
+    console.log(
+      `League data → public/league-data/ (“${n}”, ${nTeams} teams).`
+    );
+  } catch {
+    console.log('League data copied from data/ → public/league-data/.');
+  }
 } else if (existsSync(destDetails)) {
-  console.log(
-    'Using committed web/public/league-data/details.json (CI/GitHub Pages).'
-  );
+  try {
+    const d = JSON.parse(readFileSync(destDetails, 'utf8'));
+    console.log(
+      `Using committed league-data (“${d.league?.name ?? '?'}”) — no data/ folder. Add .fpl-league-id for local auto-fetch.`
+    );
+  } catch {
+    console.log(
+      'Using committed web/public/league-data/details.json (CI/GitHub Pages).'
+    );
+  }
 } else if (existsSync(sampleDetails)) {
   copyFileSync(sampleDetails, destDetails);
   console.warn(

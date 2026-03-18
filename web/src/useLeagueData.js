@@ -91,10 +91,13 @@ export function useLeagueData() {
             throw fetchErr;
           }
         }
-        const [transactions, fplMini] = await Promise.all([
-          fetchJSONOptional('transactions.json'),
-          fetchJSONOptional('fpl-mini.json'),
-        ]);
+        const [transactions, fplMini, waiverOutGw, waiverInTenureTop] =
+          await Promise.all([
+            fetchJSONOptional('transactions.json'),
+            fetchJSONOptional('fpl-mini.json'),
+            fetchJSONOptional('waiver-out-gw-scores.json'),
+            fetchJSONOptional('waiver-in-tenure-top.json'),
+          ]);
         let teamLogoMap = {};
         try {
           const r = await fetch(
@@ -111,7 +114,12 @@ export function useLeagueData() {
         }
         if (!cancelled)
           setData({
-            ...processLeagueData(details, { transactions, fplMini }),
+            ...processLeagueData(details, {
+              transactions,
+              fplMini,
+              waiverOutGw,
+              waiverInTenureTop,
+            }),
             teamLogoMap,
             fetchFailedDemo,
           });
@@ -440,6 +448,95 @@ function processLeagueData(raw, extras = {}) {
     extras.fplMini
   );
 
+  /** Sum of opponent FPL points in every finished H2H (same as standings “Faced”). */
+  const elemById = Object.fromEntries(
+    (extras.fplMini?.elements || []).map((e) => [e.id, e])
+  );
+  const teamById = Object.fromEntries(
+    (extras.fplMini?.teams || []).map((t) => [t.id, t])
+  );
+  const waiverOutGwRows = (extras.waiverOutGw?.rows || []).map((row) => ({
+    ...row,
+    teamName: teams[row.entry]?.entry_name ?? `Team ${row.entry}`,
+    droppedName:
+      elemById[row.element_out]?.web_name ?? `Player #${row.element_out}`,
+    pickedName:
+      elemById[row.element_in]?.web_name ?? `Player #${row.element_in}`,
+  }));
+
+  const waiverInTenureTopRows = (extras.waiverInTenureTop?.rows || []).map(
+    (r) => {
+      const e = elemById[r.elementId];
+      const tm = e ? teamById[e.team] : null;
+      return {
+        ...r,
+        teamName: teams[r.entry]?.entry_name ?? `Team ${r.entry}`,
+        playerName: e?.web_name ?? `Player #${r.elementId}`,
+        teamShort: tm?.short_name ?? '—',
+        teamId: e?.team,
+        shirtUrl:
+          e?.team != null
+            ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${e.team}-1.png`
+            : null,
+        badgeUrl:
+          tm?.code != null
+            ? `https://resources.premierleague.com/premierleague/badges/50/t${tm.code}.png`
+            : null,
+      };
+    }
+  );
+
+  /** Per team: sum of dropped players’ GW points on every successful waiver (transaction.entry = entry_id). */
+  const waiverOutPointsByTeam = sortedByRank
+    .map((s) => {
+      const tm = teams[s.league_entry];
+      const entryId = tm?.entry_id ?? s.league_entry;
+      let totalDroppedGwPoints = 0;
+      let waiverOutCount = 0;
+      let knownPtsCount = 0;
+      for (const r of waiverOutGwRows) {
+        if (r.entry !== entryId) continue;
+        waiverOutCount += 1;
+        if (typeof r.droppedPlayerGwPoints === 'number') {
+          totalDroppedGwPoints += r.droppedPlayerGwPoints;
+          knownPtsCount += 1;
+        }
+      }
+      const averageDroppedGwPoints =
+        waiverOutCount > 0
+          ? Math.round((totalDroppedGwPoints / waiverOutCount) * 10) / 10
+          : null;
+      return {
+        league_entry: s.league_entry,
+        teamName: s.teamName,
+        totalDroppedGwPoints,
+        waiverOutCount,
+        knownPtsCount,
+        averageDroppedGwPoints,
+      };
+    })
+    .sort((a, b) => {
+      const avgScore = (t) =>
+        t.waiverOutCount > 0 ? t.averageDroppedGwPoints ?? 0 : -Infinity;
+      const byAvg = avgScore(b) - avgScore(a);
+      if (byAvg !== 0) return byAvg;
+      const byTotal = b.totalDroppedGwPoints - a.totalDroppedGwPoints;
+      if (byTotal !== 0) return byTotal;
+      return a.teamName.localeCompare(b.teamName);
+    });
+
+  const pointsAgainstList = sortedByRank
+    .map((s) => ({
+      league_entry: s.league_entry,
+      teamName: s.teamName,
+      pointsAgainst: Number(s.points_against) || 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.pointsAgainst - a.pointsAgainst ||
+        a.teamName.localeCompare(b.teamName)
+    );
+
   return {
     league: details.league,
     standings: sortedByRank,
@@ -455,6 +552,10 @@ function processLeagueData(raw, extras = {}) {
     upcomingRounds,
     nextMatchHeadline,
     mostWaiveredPlayers,
+    pointsAgainstList,
+    waiverOutGwRows,
+    waiverOutPointsByTeam,
+    waiverInTenureTopRows,
     isSampleData,
   };
 }

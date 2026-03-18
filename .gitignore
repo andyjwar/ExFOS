@@ -1,4 +1,6 @@
 .env
+# Your draft league ID (one number) — local dev auto-fetches this league into data/
+.fpl-league-id
 __pycache__/
 *.pyc
 data/

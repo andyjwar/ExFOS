@@ -88,24 +88,32 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173.
+Open **http://localhost:5173/TCLOT/** (or the path Vite prints).
 
-**The site always uses your real league only after you run ingest.** It copies `data/*.json` (created by `ingest.py`) into `web/public/league-data/`. If that file is missing, the UI falls back to **demo sample data** and shows a yellow banner.
+### Local league data (recommended)
+
+`data/` is gitignored, so without it the app may use **old committed** `web/public/league-data/` (wrong league).
+
+1. Copy **`.fpl-league-id.example`** → **`.fpl-league-id`** in the repo root.
+2. Put **only your league ID** (the number in `draft.premierleague.com/league/THIS`) on the first line.
+3. Run **`cd web && npm run dev`** (or **`npm run build`**) — it will **download your league** into `data/` every time, then copy into `web/public/league-data/`.
+
+Optional: **`SKIP_LEAGUE_FETCH=1`** skips the download (uses existing `data/` or committed files).
 
 ### Wrong teams / not your league?
 
-Demo data was previously saved by mistake into `data/details.json` for some setups. **Fix:** from the repo root, re-fetch your league (your ID is in the URL `draft.premierleague.com/league/**THIS_NUMBER**`):
+**Fix:** add **`.fpl-league-id`** as above, or from the repo root:
 
 ```bash
 python3 ingest.py YOUR_LEAGUE_ID
 cd web && npm run dev
 ```
 
-Re-run `ingest.py` whenever you want fresh scores and fixtures.
-
 ### Dashboard data (waivers, player names)
 
 `copy-data` also builds **`fpl-mini.json`** from `bootstrap_fpl.json` (player + team names for **Most waivered**). Ensure **`transactions.json`** and **`bootstrap_fpl.json`** exist (full `ingest.py`). Then `cd web && npm run dev`.
+
+**Waiver analytics:** **`build-waiver-gw-analytics.mjs`** runs on each dev/build, calls FPL **`/api/event/{GW}/live/`** for every finished GW, then writes **`waiver-out-gw-scores.json`** (drop-week pts) and **`waiver-in-tenure-top.json`** (top 10 waiver-ins by total pts for that team until dropped). Skip with **`SKIP_WAIVER_GW_SCORES=1`**.
 
 ### GitHub Pages — link the live site to your league
 

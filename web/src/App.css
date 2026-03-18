@@ -120,6 +120,11 @@
   max-width: 52px;
 }
 
+.standings-table--sidebar .col-faced {
+  max-width: 44px;
+  white-space: nowrap;
+}
+
 .standings-table--sidebar .form-dot {
   width: 15px;
   height: 15px;
@@ -223,6 +228,191 @@
 
 .waiver-row:last-child {
   border-bottom: none;
+}
+
+/* Points against tile */
+.pa-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.pa-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--fm-border);
+}
+
+.pa-row:last-child {
+  border-bottom: none;
+}
+
+.pa-rank {
+  width: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--fm-text);
+  flex-shrink: 0;
+}
+
+.pa-team {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--fm-text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pa-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--fm-text-strong);
+  flex-shrink: 0;
+}
+
+.waiver-gw-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+  margin-top: 8px;
+  border: 1px solid var(--fm-border);
+  border-radius: 8px;
+}
+
+.waiver-gw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.waiver-gw-table th,
+.waiver-gw-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--fm-border);
+  vertical-align: top;
+}
+
+.waiver-gw-table th {
+  position: sticky;
+  top: 0;
+  background: var(--fm-card);
+  z-index: 1;
+  font-weight: 700;
+  color: var(--fm-text-strong);
+}
+
+.waiver-gw-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.waiver-gw-team {
+  font-weight: 600;
+  color: var(--fm-text-strong);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waiver-totals-grid-head {
+  display: grid;
+  grid-template-columns: 22px 36px minmax(0, 1fr) 3.5rem 3rem;
+  column-gap: 10px;
+  align-items: end;
+  padding: 6px 0 4px;
+  border-bottom: 2px solid var(--fm-border);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fm-text);
+}
+
+.waiver-totals-grid-head__team {
+  padding-left: 0;
+  min-width: 0;
+}
+
+.waiver-totals-grid-head__num {
+  justify-self: end;
+  text-align: right;
+  width: 100%;
+}
+
+.waiver-totals-list--grid {
+  margin-top: 0 !important;
+}
+
+.waiver-total-row {
+  display: grid;
+  grid-template-columns: 22px 36px minmax(0, 1fr) 3.5rem 3rem;
+  column-gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--fm-border);
+}
+
+.waiver-total-row:last-child {
+  border-bottom: none;
+}
+
+.waiver-total-row__rank {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--fm-text);
+  padding-top: 4px;
+}
+
+.waiver-total-row__total,
+.waiver-total-row__avg {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--fm-text-strong);
+  justify-self: end;
+  text-align: right;
+  padding-top: 4px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.waiver-total-row__avg {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--fm-text);
+}
+
+.pa-row--waiver-total {
+  align-items: flex-start;
+}
+
+.waiver-total-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.waiver-totals-meta {
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.waiver-pickup-team {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--fm-text-strong);
+}
+
+.waiver-pickup-info .waiver-club {
+  display: block;
+  margin-top: 2px;
 }
 
 .waiver-rank {

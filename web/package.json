@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/build-team-logos-webp.mjs && node scripts/copy-data.js && vite",
-    "build": "node scripts/build-team-logos-webp.mjs && node scripts/copy-data.js && vite build && node scripts/write-deploy-check.mjs && node scripts/postbuild-gh-pages.mjs",
+    "dev": "node scripts/build-team-logos-webp.mjs && node scripts/fetch-league-if-needed.mjs && node scripts/copy-data.js && node scripts/build-waiver-gw-analytics.mjs && vite",
+    "build": "node scripts/build-team-logos-webp.mjs && node scripts/fetch-league-if-needed.mjs && node scripts/copy-data.js && node scripts/build-waiver-gw-analytics.mjs && vite build && node scripts/write-deploy-check.mjs && node scripts/postbuild-gh-pages.mjs",
     "deploy": "npm run build && npx gh-pages -d dist",
     "publish-real-league": "node scripts/publish-real-league.mjs",
     "lint": "eslint .",
