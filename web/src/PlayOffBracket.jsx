@@ -2,7 +2,10 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { TeamAvatar } from './TeamAvatar'
 
 /** H2H week for quarter-finals; winner that week progresses. */
-const PLAYOFF_QF_GW = 35
+const PLAYOFF_QF_GW = 36
+/** Projected H2H week for semifinals / final labels. */
+const PLAYOFF_SF_GW = 37
+const PLAYOFF_FINAL_GW = 38
 
 /** Order: 1v8, 4v5, 2v7, 3v6 — seeds are standings positions 1–8 (current top eight, tie-break on total). */
 function buildQuarterMatchups(tableRows) {
@@ -216,7 +219,7 @@ function FinalColumn({ tilesShiftPx = 0 }) {
         <span className="playoff-row-stage-label__emoji" aria-hidden="true">
           🏆
         </span>
-        <span>Final</span>
+        <span>Final (GW {PLAYOFF_FINAL_GW})</span>
       </div>
       <div className="playoff-final-col__tiles">
         <PlaceholderTile text="Semifinal 1 H2H winner" />
@@ -348,7 +351,7 @@ export function PlayOffBracket({ tableRows, teamLogoMap }) {
         </div>
         <div className="playoff-grid__sf1" ref={sf1Ref}>
           <SfColumn
-            title="Semifinal 1"
+            title={`Semifinal 1 (GW ${PLAYOFF_SF_GW})`}
             hintTop={`GW ${PLAYOFF_QF_GW} winner · 1 vs 8`}
             hintBottom={`GW ${PLAYOFF_QF_GW} winner · 4 vs 5`}
             tilesShiftPx={sf1TilesShiftPx}
@@ -362,7 +365,7 @@ export function PlayOffBracket({ tableRows, teamLogoMap }) {
         </div>
         <div className="playoff-grid__sf2" ref={sf2Ref}>
           <SfColumn
-            title="Semifinal 2"
+            title={`Semifinal 2 (GW ${PLAYOFF_SF_GW})`}
             hintTop={`GW ${PLAYOFF_QF_GW} winner · 2 vs 7`}
             hintBottom={`GW ${PLAYOFF_QF_GW} winner · 3 vs 6`}
             tilesShiftPx={sf2TilesShiftPx}

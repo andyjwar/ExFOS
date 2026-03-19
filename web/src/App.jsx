@@ -463,8 +463,12 @@ function App() {
                 <tbody>
                   {tableRows.map((row) => {
                     const isLeader = row.rank === 1
+                    const isPlayoffDivider = row.rank === 1 || row.rank === 8
+                    const trClass = [isLeader ? 'row-highlight' : '', isPlayoffDivider ? 'row-standings-dotted-under' : '']
+                      .filter(Boolean)
+                      .join(' ')
                     return (
-                      <tr key={row.league_entry} className={isLeader ? 'row-highlight' : undefined}>
+                      <tr key={row.league_entry} className={trClass || undefined}>
                         <td className="col-rank">{row.rank}</td>
                         <td className="col-team">
                           <span className="team-cell">

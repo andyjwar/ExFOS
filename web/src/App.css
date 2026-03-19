@@ -1,6 +1,7 @@
 /* FotMob-inspired: light tiles, grey borders, clean type */
 .fotmob {
-  --fm-bg: #f5f5f5;
+  /* Cool blue-grey shell — complements purple → cyan accents */
+  --fm-bg: #f3f5f9;
   --fm-card: #ffffff;
   --fm-border: #e8e8e8;
   --fm-text: #5c5c5c;
@@ -9,6 +10,17 @@
   --fm-draw: #9e9e9e;
   --fm-loss: #e53935;
   --fm-row-hi: #f3f3f3;
+  /* Title tile + nav active — purple → cyan */
+  --fm-accent-gradient: linear-gradient(
+    90deg,
+    #5b21b6 0%,
+    #5538d4 20%,
+    #3945d8 40%,
+    #2563eb 58%,
+    #0ea5e9 78%,
+    #22d3ee 100%
+  );
+  --fm-accent-glow: 0 4px 20px rgba(91, 60, 200, 0.22);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--fm-bg);
   color: var(--fm-text);
@@ -81,19 +93,23 @@
 }
 
 .dashboard-nav__btn:hover {
-  background: var(--fm-row-hi);
-  color: var(--fm-text-strong);
+  background: #f4f2ff;
+  color: #4338ca;
+  border-color: #ddd6fe;
 }
 
 .dashboard-nav__btn--active {
-  background: var(--fm-text-strong);
+  background: var(--fm-accent-gradient);
   color: #fff;
-  border-color: var(--fm-text-strong);
+  border: none;
+  box-shadow: var(--fm-accent-glow);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .dashboard-nav__btn--active:hover {
-  background: #333;
+  background: var(--fm-accent-gradient);
   color: #fff;
+  filter: brightness(1.06);
 }
 
 .dashboard-content {
@@ -1637,28 +1653,29 @@ button.live-fixture-banner--toggle {
   padding: 18px 22px;
 }
 
-.page-title-main {
+.tile--title-banner .page-title-main {
   margin: 0;
   font-size: clamp(1.25rem, 4vw, 1.65rem);
   font-weight: 700;
-  color: var(--fm-text-strong);
+  color: #fff;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-.page-title-season {
+.tile--title-banner .page-title-season {
   margin: 8px 0 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--fm-text);
+  color: rgba(255, 255, 255, 0.94);
   letter-spacing: 0.02em;
   line-height: 1.3;
 }
 
-.brand-sub--in-title-tile {
+.tile--title-banner .brand-sub--in-title-tile {
   margin: 10px 0 0;
   font-size: 0.9rem;
-  color: var(--fm-text);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .brand-row {
@@ -1747,6 +1764,15 @@ button.live-fixture-banner--toggle {
   border-radius: 12px;
   padding: 16px 18px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* League header: purple → blue → cyan (FPL-style strap), white type */
+.tile.tile--title-banner {
+  background: var(--fm-accent-gradient);
+  border: none;
+  box-shadow: var(--fm-accent-glow);
+  color: #fff;
+  padding: 18px 22px;
 }
 
 .tile-title {
@@ -2078,12 +2104,19 @@ button.live-fixture-banner--toggle {
   padding-right: 16px;
 }
 
-.standings-table tbody tr:last-child td {
+/* Remove bottom border on last row unless it’s a playoff divider (e.g. 8-team league). */
+.standings-table tbody tr:last-child:not(.row-standings-dotted-under) td {
   border-bottom: none;
 }
 
+/* Full-row dashed line under 1st and 8th (playoff zone) — matches thead text colour */
+.standings-table tbody tr.row-standings-dotted-under td {
+  border-bottom: 2px dashed var(--fm-text);
+}
+
 .row-highlight {
-  background: var(--fm-row-hi);
+  /* Match app shell (--fm-bg) so 1st place picks up the same cool blue-grey */
+  background: var(--fm-bg);
 }
 
 .tabular {
