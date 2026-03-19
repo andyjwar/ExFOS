@@ -25,14 +25,11 @@
   --fm-dash-gradient: var(--fm-accent-gradient);
   --fm-standings-cut: #b6becd;
   --fm-table-head: #f2f5fb;
-  --fm-standings-8th-bg: #fdf2f2;
   --fm-nav-hover-bg: #dbeafe;
   --fm-nav-hover-border: #60a5fa;
   --fm-nav-hover-text: #1e3a8a;
-  /* Standings ranks 8–12 — red row glow (8th keeps --fm-standings-8th-bg on cells) */
-  --fm-standings-red-shadow:
-    0 2px 10px rgba(200, 52, 52, 0.2),
-    0 4px 18px -2px rgba(190, 45, 45, 0.16);
+  /* Ranks 8–12 band: one subtle block (see .standings-tbody--ranks-8-12) */
+  --fm-standings-band-fill: rgba(88, 18, 26, 0.042);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--fm-bg);
   color: var(--fm-text);
@@ -253,10 +250,11 @@
   border-bottom: 1px solid var(--fm-border);
 }
 
-/* Full standings height — no vertical scroll */
+/* Full standings height — no vertical scroll; inset so tbody drop-shadow isn’t clipped */
 .table-scroll--standings-open {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 2px 8px 10px;
 }
 
 .standings-table--sidebar {
@@ -1659,6 +1657,123 @@ button.live-fixture-banner--toggle {
   flex-shrink: 0;
 }
 
+/* Latest waivers tile (per-team cards, horizontal moves) */
+.latest-waivers__hint {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.latest-waivers__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.latest-waivers__card {
+  border: 1px solid var(--fm-border);
+  border-radius: 12px;
+  background: var(--fm-card, #fff);
+  padding: 14px 16px;
+}
+
+.latest-waivers__card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.latest-waivers__team-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--fm-text-strong);
+}
+
+.latest-waivers__moves-scroll {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  margin: 0 -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.latest-waivers__move {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 14px;
+  border-right: 1px solid var(--fm-border);
+  min-width: 148px;
+  max-width: 220px;
+}
+
+.latest-waivers__move:first-child {
+  padding-left: 0;
+}
+
+.latest-waivers__move:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.latest-waivers__fa-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  font-size: 0.58rem;
+  font-weight: 800;
+  background: #1e3a8a;
+  color: #fff;
+  padding: 3px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.latest-waivers__fa-spacer {
+  display: block;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.latest-waivers__io {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.latest-waivers__io-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--fm-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.latest-waivers__player-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--fm-text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
 .waiver-info {
   flex: 1;
   min-width: 0;
@@ -2191,7 +2306,8 @@ button.live-fixture-banner--toggle {
   padding-right: 16px;
 }
 
-.standings-table tbody tr:last-child td {
+/* Only the true table footer row loses a bottom border */
+.standings-table tbody:last-child tr:last-child td {
   border-bottom: none;
 }
 
@@ -2200,37 +2316,46 @@ button.live-fixture-banner--toggle {
   background: var(--fm-table-head, #f2f5fb);
 }
 
-/* 8th place: soft red tint (same “faded” idea as leader blue) */
-.standings-table tbody tr.standings-row--8th td {
-  background: var(--fm-standings-8th-bg);
-}
-
 /* Thin dashed separators — easy on the eye */
 .standings-table tbody tr.standings-row--divider-below td {
   border-bottom: 1px dashed var(--fm-standings-cut);
 }
 
-.standings-table tbody tr.standings-row--divider-above td {
+/* Dashed cut above the 8–12 block when split into its own tbody */
+.standings-table tbody.standings-tbody--ranks-8-12 tr:first-child td {
   border-top: 1px dashed var(--fm-standings-cut);
 }
 
-.standings-table tbody tr:has(+ tr.standings-row--divider-above) td {
+.standings-table
+  tbody.standings-tbody--upper:has(+ tbody.standings-tbody--ranks-8-12)
+  tr:last-child
+  td {
   border-bottom: none;
 }
 
-/* Bottom standings band (ranks 8–12): soft red glow along the full row */
-.standings-table tbody tr.row-standings-red-shadow {
-  position: relative;
-  z-index: 0;
-  box-shadow: var(--fm-standings-red-shadow);
+/* Single visual block for ranks 8–12 — drop-shadow paints one halo around the whole tbody */
+.standings-table tbody.standings-tbody--ranks-8-12 {
+  filter: drop-shadow(0 2px 12px rgba(48, 10, 16, 0.08));
 }
 
-.standings-table tbody tr.row-standings-red-shadow td {
-  background-color: rgba(200, 55, 55, 0.055);
+.standings-table tbody.standings-tbody--ranks-8-12 tr td {
+  background-color: var(--fm-standings-band-fill);
 }
 
-.standings-table tbody tr.standings-row--8th.row-standings-red-shadow td {
-  background: var(--fm-standings-8th-bg);
+.standings-table tbody.standings-tbody--ranks-8-12 tr:first-child td:first-child {
+  border-top-left-radius: 8px;
+}
+
+.standings-table tbody.standings-tbody--ranks-8-12 tr:first-child td:last-child {
+  border-top-right-radius: 8px;
+}
+
+.standings-table tbody.standings-tbody--ranks-8-12 tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.standings-table tbody.standings-tbody--ranks-8-12 tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
 }
 
 .tabular {

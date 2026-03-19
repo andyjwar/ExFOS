@@ -308,6 +308,98 @@ function displayEntryName(e) {
   return id != null ? `Team ${id}` : 'Unknown';
 }
 
+/**
+ * Latest gameweek with any approved waiver (`kind` w) or free-agency (`kind` f) add/drop,
+ * grouped per manager for dashboard “Latest waivers” tiles.
+ */
+function buildLatestGwWaiverBoard(
+  transactionsPayload,
+  leagueEntries,
+  sortedByRank,
+  elemById,
+  teamById
+) {
+  const txs = transactionsPayload?.transactions;
+  if (!Array.isArray(txs) || txs.length === 0) {
+    return { gameweek: null, teams: [] };
+  }
+  const approved = txs.filter(
+    (t) =>
+      (t.kind === 'w' || t.kind === 'f') &&
+      t.result === 'a' &&
+      t.element_in != null &&
+      t.element_out != null &&
+      Number(t.event) > 0
+  );
+  if (!approved.length) {
+    return { gameweek: null, teams: [] };
+  }
+  const maxGw = Math.max(...approved.map((t) => Number(t.event)));
+  const inGw = approved.filter((t) => Number(t.event) === maxGw);
+
+  const fplToLeague = new Map(
+    (leagueEntries || [])
+      .filter((e) => e.entry_id != null && e.id != null)
+      .map((e) => [Number(e.entry_id), Number(e.id)])
+  );
+  const entryByFpl = new Map(
+    (leagueEntries || [])
+      .filter((e) => e.entry_id != null)
+      .map((e) => [Number(e.entry_id), e])
+  );
+
+  const byFpl = new Map();
+  for (const t of inGw) {
+    const fid = Number(t.entry);
+    if (!byFpl.has(fid)) byFpl.set(fid, []);
+    byFpl.get(fid).push(t);
+  }
+  for (const arr of byFpl.values()) {
+    arr.sort((a, b) => {
+      const ta = a.added ? Date.parse(a.added) : 0;
+      const tb = b.added ? Date.parse(b.added) : 0;
+      if (ta !== tb) return ta - tb;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
+  }
+
+  const rankIndex = new Map(sortedByRank.map((s, i) => [s.league_entry, i]));
+  const teamsOut = [];
+  for (const [fplEntry, moveTxs] of byFpl.entries()) {
+    const entryRow = entryByFpl.get(fplEntry);
+    const leagueEntryId =
+      entryRow?.id ?? fplToLeague.get(fplEntry) ?? null;
+    const teamName =
+      (leagueEntryId != null
+        ? sortedByRank.find((s) => s.league_entry === leagueEntryId)?.teamName
+        : null) ??
+      (entryRow ? displayEntryName(entryRow) : `Team ${fplEntry}`);
+    const moves = moveTxs.map((t) => ({
+      transactionId: t.id,
+      isFreeAgency: t.kind === 'f',
+      playerIn: enrichTradePlayer(Number(t.element_in), elemById, teamById),
+      playerOut: enrichTradePlayer(Number(t.element_out), elemById, teamById),
+    }));
+    teamsOut.push({
+      leagueEntry: leagueEntryId ?? fplEntry,
+      fplEntry,
+      teamName,
+      moves,
+    });
+  }
+  teamsOut.sort((a, b) => {
+    const ia = rankIndex.has(a.leagueEntry)
+      ? rankIndex.get(a.leagueEntry)
+      : 999;
+    const ib = rankIndex.has(b.leagueEntry)
+      ? rankIndex.get(b.leagueEntry)
+      : 999;
+    if (ia !== ib) return ia - ib;
+    return String(a.teamName).localeCompare(String(b.teamName));
+  });
+  return { gameweek: maxGw, teams: teamsOut };
+}
+
 /** FPL draft uses `id` in matches/standings; `entry_id` can differ — index both. */
 function buildTeamsMap(leagueEntries) {
   const teams = {};
@@ -650,6 +742,13 @@ function processLeagueData(raw, extras = {}) {
   const teamById = Object.fromEntries(
     (extras.fplMini?.teams || []).map((t) => [t.id, t])
   );
+  const latestGwWaivers = buildLatestGwWaiverBoard(
+    extras.transactions,
+    leagueEntries,
+    sortedByRank,
+    elemById,
+    teamById
+  );
   const waiverOutGwRows = (extras.waiverOutGw?.rows || []).map((row) => ({
     ...row,
     teamName: teams[row.entry]?.entry_name ?? `Team ${row.entry}`,
@@ -797,6 +896,7 @@ function processLeagueData(raw, extras = {}) {
     waiverOutPointsByTeam,
     waiverInTenureTopRows,
     waiverInPointsByTeam,
+    latestGwWaivers,
     winMarginBucketRows,
     lossMarginBucketRows,
     tradesPanelRows,

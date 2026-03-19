@@ -1,70 +1,367 @@
 {
   "trades": [
     {
-      "event": 9,
-      "id": 424033,
-      "offered_entry": 41410,
-      "offer_time": "2025-10-19T18:27:30.725230Z",
-      "received_entry": 40385,
-      "response_time": "2025-10-20T07:22:40.815551Z",
+      "event": 3,
+      "id": 183236,
+      "offered_entry": 132387,
+      "offer_time": "2025-08-28T22:50:01.265904Z",
+      "received_entry": 204761,
+      "response_time": "2025-08-28T22:52:07.466586Z",
       "state": "p",
       "tradeitem_set": [
         {
-          "element_in": 661,
-          "element_out": 499
+          "element_in": 505,
+          "element_out": 444
+        },
+        {
+          "element_in": 515,
+          "element_out": 614
+        },
+        {
+          "element_in": 625,
+          "element_out": 283
+        }
+      ]
+    },
+    {
+      "event": 4,
+      "id": 224563,
+      "offered_entry": 275418,
+      "offer_time": "2025-09-03T19:52:19.084148Z",
+      "received_entry": 347467,
+      "response_time": "2025-09-04T01:42:51.827965Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 314,
+          "element_out": 431
+        },
+        {
+          "element_in": 225,
+          "element_out": 37
+        },
+        {
+          "element_in": 474,
+          "element_out": 402
+        }
+      ]
+    },
+    {
+      "event": 4,
+      "id": 228575,
+      "offered_entry": 347467,
+      "offer_time": "2025-09-04T19:47:14.567649Z",
+      "received_entry": 136355,
+      "response_time": "2025-09-05T14:36:26.118011Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 238,
+          "element_out": 413
+        },
+        {
+          "element_in": 695,
+          "element_out": 338
+        }
+      ]
+    },
+    {
+      "event": 4,
+      "id": 239677,
+      "offered_entry": 144537,
+      "offer_time": "2025-09-09T11:54:10.796382Z",
+      "received_entry": 132387,
+      "response_time": "2025-09-09T12:00:07.795238Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 257,
+          "element_out": 293
+        },
+        {
+          "element_in": 517,
+          "element_out": 83
+        }
+      ]
+    },
+    {
+      "event": 7,
+      "id": 344976,
+      "offered_entry": 204761,
+      "offer_time": "2025-09-28T20:11:26.801073Z",
+      "received_entry": 132405,
+      "response_time": "2025-09-29T14:52:01.276959Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 679,
+          "element_out": 283
+        }
+      ]
+    },
+    {
+      "event": 10,
+      "id": 467107,
+      "offered_entry": 132220,
+      "offer_time": "2025-10-28T18:27:35.040983Z",
+      "received_entry": 303847,
+      "response_time": "2025-10-28T18:41:46.185359Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 1,
+          "element_out": 681
+        },
+        {
+          "element_in": 478,
+          "element_out": 7
+        },
+        {
+          "element_in": 266,
+          "element_out": 414
+        },
+        {
+          "element_in": 284,
+          "element_out": 249
+        }
+      ]
+    },
+    {
+      "event": 10,
+      "id": 472379,
+      "offered_entry": 204761,
+      "offer_time": "2025-10-29T21:00:51.805722Z",
+      "received_entry": 132220,
+      "response_time": "2025-10-29T21:11:16.761609Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 478,
+          "element_out": 317
+        },
+        {
+          "element_in": 452,
+          "element_out": 419
+        }
+      ]
+    },
+    {
+      "event": 11,
+      "id": 506684,
+      "offered_entry": 132220,
+      "offer_time": "2025-11-06T21:04:26.208686Z",
+      "received_entry": 174693,
+      "response_time": "2025-11-06T21:32:07.909470Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 628,
+          "element_out": 728
+        },
+        {
+          "element_in": 525,
+          "element_out": 215
+        }
+      ]
+    },
+    {
+      "event": 12,
+      "id": 522243,
+      "offered_entry": 303847,
+      "offer_time": "2025-11-11T15:16:40.986496Z",
+      "received_entry": 132387,
+      "response_time": "2025-11-11T16:00:19.070042Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 575,
+          "element_out": 151
+        },
+        {
+          "element_in": 83,
+          "element_out": 414
+        },
+        {
+          "element_in": 64,
+          "element_out": 249
+        }
+      ]
+    },
+    {
+      "event": 12,
+      "id": 538592,
+      "offered_entry": 132220,
+      "offer_time": "2025-11-20T21:13:34.652238Z",
+      "received_entry": 204761,
+      "response_time": "2025-11-20T21:46:43.626122Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 375,
+          "element_out": 411
+        },
+        {
+          "element_in": 241,
+          "element_out": 266
+        },
+        {
+          "element_in": 250,
+          "element_out": 178
         }
       ]
     },
     {
       "event": 13,
-      "id": 543307,
-      "offered_entry": 41410,
-      "offer_time": "2025-11-23T18:02:37.722600Z",
-      "received_entry": 27134,
-      "response_time": "2025-11-23T18:16:10.462115Z",
+      "id": 555386,
+      "offered_entry": 132405,
+      "offer_time": "2025-11-26T21:43:19.512407Z",
+      "received_entry": 303847,
+      "response_time": "2025-11-26T21:56:55.085179Z",
       "state": "p",
       "tradeitem_set": [
         {
-          "element_in": 101,
-          "element_out": 728
+          "element_in": 64,
+          "element_out": 666
+        }
+      ]
+    },
+    {
+      "event": 14,
+      "id": 564417,
+      "offered_entry": 144537,
+      "offer_time": "2025-11-30T18:31:11.638428Z",
+      "received_entry": 174693,
+      "response_time": "2025-11-30T20:41:57.960653Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 328,
+          "element_out": 120
         },
         {
-          "element_in": 64,
+          "element_in": 661,
           "element_out": 97
         }
       ]
     },
     {
-      "event": 23,
-      "id": 715143,
-      "offered_entry": 27040,
-      "offer_time": "2026-01-17T15:24:23.409853Z",
-      "received_entry": 27134,
-      "response_time": "2026-01-20T22:15:16.667245Z",
+      "event": 16,
+      "id": 587040,
+      "offered_entry": 162481,
+      "offer_time": "2025-12-07T10:55:19.462141Z",
+      "received_entry": 136355,
+      "response_time": "2025-12-07T15:13:07.446633Z",
       "state": "p",
       "tradeitem_set": [
         {
-          "element_in": 260,
-          "element_out": 371
+          "element_in": 381,
+          "element_out": 22
+        }
+      ]
+    },
+    {
+      "event": 18,
+      "id": 634590,
+      "offered_entry": 144537,
+      "offer_time": "2025-12-21T20:42:26.421635Z",
+      "received_entry": 174693,
+      "response_time": "2025-12-21T21:06:07.425168Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 237,
+          "element_out": 120
+        }
+      ]
+    },
+    {
+      "event": 18,
+      "id": 635945,
+      "offered_entry": 303847,
+      "offer_time": "2025-12-22T01:56:56.497305Z",
+      "received_entry": 204761,
+      "response_time": "2025-12-23T10:50:38.951448Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 266,
+          "element_out": 450
+        }
+      ]
+    },
+    {
+      "event": 22,
+      "id": 713499,
+      "offered_entry": 132220,
+      "offer_time": "2026-01-15T23:09:39.715393Z",
+      "received_entry": 303847,
+      "response_time": "2026-01-15T23:26:50.795202Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 67,
+          "element_out": 1
+        },
+        {
+          "element_in": 612,
+          "element_out": 20
+        },
+        {
+          "element_in": 666,
+          "element_out": 250
         }
       ]
     },
     {
       "event": 27,
-      "id": 798310,
-      "offered_entry": 27870,
-      "offer_time": "2026-02-13T10:26:03.001881Z",
-      "received_entry": 27134,
-      "response_time": "2026-02-13T10:30:54.673701Z",
+      "id": 799535,
+      "offered_entry": 132387,
+      "offer_time": "2026-02-13T22:55:38.006171Z",
+      "received_entry": 303847,
+      "response_time": "2026-02-14T03:15:30.319637Z",
       "state": "p",
       "tradeitem_set": [
         {
-          "element_in": 440,
-          "element_out": 8
+          "element_in": 83,
+          "element_out": 515
         },
         {
-          "element_in": 691,
-          "element_out": 526
+          "element_in": 266,
+          "element_out": 488
+        }
+      ]
+    },
+    {
+      "event": 28,
+      "id": 816154,
+      "offered_entry": 144537,
+      "offer_time": "2026-02-23T22:11:51.737832Z",
+      "received_entry": 347467,
+      "response_time": "2026-02-23T22:27:26.410445Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 407,
+          "element_out": 290
+        },
+        {
+          "element_in": 242,
+          "element_out": 237
+        }
+      ]
+    },
+    {
+      "event": 31,
+      "id": 850995,
+      "offered_entry": 144537,
+      "offer_time": "2026-03-18T22:07:28.627044Z",
+      "received_entry": 204761,
+      "response_time": "2026-03-18T22:08:41.802373Z",
+      "state": "p",
+      "tradeitem_set": [
+        {
+          "element_in": 261,
+          "element_out": 440
         }
       ]
     }

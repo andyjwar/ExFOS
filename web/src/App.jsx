@@ -53,6 +53,73 @@ function PlayerKit({ shirtUrl, badgeUrl, teamShort }) {
   )
 }
 
+/** Successful waiver + FA pickups for the latest GW in `transactions.json` (per team). */
+function LatestWaiversTile({ pack, teamLogoMap }) {
+  if (pack?.gameweek == null || !pack.teams?.length) return null
+  return (
+    <section className="tile tile--compact" aria-labelledby="latest-waivers-heading">
+      <div className="tile-head-row tile-head-row--tight">
+        <h2 id="latest-waivers-heading" className="tile-title tile-title--sm">
+          Latest Waivers (GW {pack.gameweek})
+        </h2>
+      </div>
+      <p className="latest-waivers__hint muted tile-hint--tight">
+        Successful <strong>waivers</strong> and <strong>free agency</strong> pickups from the latest gameweek in
+        your data. Per team, moves sit in one horizontal row; each move stacks In above Out (kits from FPL).
+        Scroll sideways if needed. <strong>FA</strong> = free agency.
+      </p>
+      <ul className="latest-waivers__list">
+        {pack.teams.map((t) => (
+          <li key={t.leagueEntry} className="latest-waivers__card">
+            <div className="latest-waivers__card-head">
+              <TeamAvatar entryId={t.leagueEntry} name={t.teamName} size="sm" logoMap={teamLogoMap} />
+              <span className="latest-waivers__team-name">{t.teamName}</span>
+            </div>
+            <div className="latest-waivers__moves-scroll">
+              {t.moves.map((m, idx) => (
+                <div
+                  key={m.transactionId != null ? String(m.transactionId) : `m-${idx}`}
+                  className="latest-waivers__move"
+                >
+                  {m.isFreeAgency ? (
+                    <span className="latest-waivers__fa-badge" title="Free agency pickup">
+                      FA
+                    </span>
+                  ) : (
+                    <span className="latest-waivers__fa-spacer" aria-hidden />
+                  )}
+                  <div className="latest-waivers__io">
+                    <span className="latest-waivers__io-label">IN</span>
+                    <PlayerKit
+                      shirtUrl={m.playerIn.shirtUrl}
+                      badgeUrl={m.playerIn.badgeUrl}
+                      teamShort={m.playerIn.teamShort}
+                    />
+                    <span className="latest-waivers__player-name" title={m.playerIn.web_name}>
+                      {m.playerIn.web_name}
+                    </span>
+                  </div>
+                  <div className="latest-waivers__io">
+                    <span className="latest-waivers__io-label">OUT</span>
+                    <PlayerKit
+                      shirtUrl={m.playerOut.shirtUrl}
+                      badgeUrl={m.playerOut.badgeUrl}
+                      teamShort={m.playerOut.teamShort}
+                    />
+                    <span className="latest-waivers__player-name" title={m.playerOut.web_name}>
+                      {m.playerOut.web_name}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /** Single processed-trade card (GW, date, managers, pairs + tenure points). */
 function TradeCardArticle({ trade, teamLogoMap }) {
   const pairs = trade.pairs || []
@@ -282,11 +349,25 @@ function App() {
     waiverOutPointsByTeam,
     waiverInTenureTopRows,
     waiverInPointsByTeam,
+    latestGwWaivers,
     winMarginBucketRows,
     lossMarginBucketRows,
     tradesPanelRows,
     matches,
   } = data
+
+  // Not useMemo: must not add hooks after loading/error early-returns (Rules of Hooks).
+  const standingsTableSlices = (() => {
+    const upper = []
+    const band812 = []
+    const tail = []
+    for (const row of tableRows) {
+      if (row.rank < 8) upper.push(row)
+      else if (row.rank <= 12) band812.push(row)
+      else tail.push(row)
+    }
+    return { upper, band812, tail }
+  })()
 
   const defaultFormEntry = teamsForFormSelect[0]?.id
   const activeFormEntry = formTeamId ?? defaultFormEntry
@@ -298,6 +379,51 @@ function App() {
   /** Live tab: default GW when `liveGw` unset; never pass NaN to FPL fetches. */
   const liveGameweek =
     Number(liveGw ?? previousGameweek ?? nextEvent ?? 1) || 1
+
+  function renderStandingsDataRow(row) {
+    const isLeader = row.rank === 1
+    const rowClass = [
+      isLeader ? 'row-highlight' : '',
+      row.rank === 1 ? 'standings-row--divider-below' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return (
+      <tr key={row.league_entry} className={rowClass || undefined}>
+        <td className="col-rank">{row.rank}</td>
+        <td className="col-team">
+          <span className="team-cell">
+            <TeamAvatar entryId={row.league_entry} name={row.teamName} size="sm" logoMap={teamLogoMap} />
+            <span className="team-name team-name--sidebar">{row.teamName}</span>
+          </span>
+        </td>
+        <td className="col-num">{row.pl}</td>
+        <td className="col-num">{row.matches_won}</td>
+        <td className="col-num">{row.matches_drawn}</td>
+        <td className="col-num">{row.matches_lost}</td>
+        <td className="col-num col-for tabular" title="Your points for, all GWs">
+          {row.gf}
+        </td>
+        <td className="col-num col-faced tabular" title="Opponent points faced, all GWs">
+          {row.ga}
+        </td>
+        <td className="col-num tabular">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+        <td className="col-num col-pts">
+          <strong>{row.total}</strong>
+        </td>
+        <td className="col-form">
+          <FormCircles form={row.form} />
+        </td>
+        <td className="col-next">
+          {row.next ? (
+            <TeamAvatar entryId={row.next.id} name={row.next.name} size="sm" logoMap={teamLogoMap} />
+          ) : (
+            <span className="muted">—</span>
+          )}
+        </td>
+      </tr>
+    )
+  }
 
   const renderGwFixture = (fx, i) => (
     <li key={`${fx.event}-${fx.homeId}-${fx.awayId}-${i}`} className="gw-fixture-row">
@@ -468,54 +594,17 @@ function App() {
                     <th className="col-next">Nxt</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {tableRows.map((row) => {
-                    const isLeader = row.rank === 1
-                    const rowClass = [
-                      isLeader ? 'row-highlight' : '',
-                      row.rank === 1 ? 'standings-row--divider-below' : '',
-                      row.rank === 8 ? 'standings-row--divider-above standings-row--8th' : '',
-                      row.rank >= 8 && row.rank <= 12 ? 'row-standings-red-shadow' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')
-                    return (
-                      <tr key={row.league_entry} className={rowClass || undefined}>
-                        <td className="col-rank">{row.rank}</td>
-                        <td className="col-team">
-                          <span className="team-cell">
-                            <TeamAvatar entryId={row.league_entry} name={row.teamName} size="sm" logoMap={teamLogoMap} />
-                            <span className="team-name team-name--sidebar">{row.teamName}</span>
-                          </span>
-                        </td>
-                        <td className="col-num">{row.pl}</td>
-                        <td className="col-num">{row.matches_won}</td>
-                        <td className="col-num">{row.matches_drawn}</td>
-                        <td className="col-num">{row.matches_lost}</td>
-                        <td className="col-num col-for tabular" title="Your points for, all GWs">
-                          {row.gf}
-                        </td>
-                        <td className="col-num col-faced tabular" title="Opponent points faced, all GWs">
-                          {row.ga}
-                        </td>
-                        <td className="col-num tabular">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
-                        <td className="col-num col-pts">
-                          <strong>{row.total}</strong>
-                        </td>
-                        <td className="col-form">
-                          <FormCircles form={row.form} />
-                        </td>
-                        <td className="col-next">
-                          {row.next ? (
-                            <TeamAvatar entryId={row.next.id} name={row.next.name} size="sm" logoMap={teamLogoMap} />
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
+                <tbody className="standings-tbody--upper">
+                  {standingsTableSlices.upper.map((row) => renderStandingsDataRow(row))}
                 </tbody>
+                {standingsTableSlices.band812.length > 0 && (
+                  <tbody className="standings-tbody--ranks-8-12">
+                    {standingsTableSlices.band812.map((row) => renderStandingsDataRow(row))}
+                  </tbody>
+                )}
+                {standingsTableSlices.tail.length > 0 && (
+                  <tbody>{standingsTableSlices.tail.map((row) => renderStandingsDataRow(row))}</tbody>
+                )}
               </table>
             </div>
             <p className="table-foot muted">
@@ -784,6 +873,7 @@ function App() {
 
           {dashboardView === 'waivers' && (
             <div className="dashboard-stack">
+          <LatestWaiversTile pack={latestGwWaivers} teamLogoMap={teamLogoMap} />
           <section className="tile tile--compact" aria-labelledby="waiver-in-by-team-heading">
             <div className="tile-head-row tile-head-row--tight">
               <h2 id="waiver-in-by-team-heading" className="tile-title tile-title--sm">
