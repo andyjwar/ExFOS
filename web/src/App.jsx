@@ -475,6 +475,7 @@ function App() {
                       isLeader ? 'row-highlight' : '',
                       row.rank === 1 ? 'standings-row--divider-below' : '',
                       row.rank === 8 ? 'standings-row--divider-above standings-row--8th' : '',
+                      row.rank >= 8 && row.rank <= 12 ? 'row-standings-red-shadow' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')
