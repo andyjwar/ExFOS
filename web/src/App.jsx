@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   useLeagueData,
   FORM_LAST_N,
@@ -206,12 +206,6 @@ function App() {
     }
   }, [filteredWaiverOutRows, waiverOutTeamFilter, waiverGwTableMode])
 
-  useEffect(() => {
-    if (!data || liveGw != null) return
-    const gw = data.previousGameweek ?? data.nextEvent ?? 1
-    setLiveGw(Number(gw))
-  }, [data, liveGw])
-
   if (loading) {
     return (
       <div className="app fotmob">
@@ -263,6 +257,7 @@ function App() {
     winMarginBucketRows,
     lossMarginBucketRows,
     tradesPanelRows,
+    matches,
   } = data
 
   const defaultFormEntry = teamsForFormSelect[0]?.id
@@ -271,6 +266,10 @@ function App() {
     activeFormEntry != null ? teamFormStripByEntry[activeFormEntry] ?? [] : []
   const selectedFormTeamName =
     teamsForFormSelect.find((t) => t.id === activeFormEntry)?.teamName ?? ''
+
+  /** Live tab: default GW when `liveGw` unset; never pass NaN to FPL fetches. */
+  const liveGameweek =
+    Number(liveGw ?? previousGameweek ?? nextEvent ?? 1) || 1
 
   const renderGwFixture = (fx, i) => (
     <li key={`${fx.event}-${fx.homeId}-${fx.awayId}-${i}`} className="gw-fixture-row">
@@ -1083,7 +1082,7 @@ function App() {
             ) : (
               <p className="muted">
                 Run full <code>ingest.py</code> (includes <code>transactions.json</code> and{' '}
-                <code>bootstrap_fpl.json</code>) then <code>npm run dev</code> to build waiver stats.
+                <code>bootstrap_draft.json</code>) then <code>npm run dev</code> to build waiver stats.
               </p>
             )}
           </section>
@@ -1129,10 +1128,11 @@ function App() {
             </div>
           )}
 
-          {dashboardView === 'live' && liveGw != null && (
+          {dashboardView === 'live' && (
             <LiveScores
               teams={teamsForFormSelect}
-              gameweek={liveGw}
+              matches={matches ?? []}
+              gameweek={liveGameweek}
               onGameweekChange={setLiveGw}
               teamLogoMap={teamLogoMap}
             />
@@ -1144,7 +1144,7 @@ function App() {
               draft.premierleague.com
             </a>{' '}
             (refresh with <code>ingest.py</code>). <strong>Live</strong> tab loads picks &amp; scores
-            directly from <code>fantasy.premierleague.com</code> in your browser.
+            via your proxy from the draft FPL APIs in your browser.
           </footer>
         </div>
       </main>

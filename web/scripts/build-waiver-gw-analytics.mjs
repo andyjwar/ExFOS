@@ -18,16 +18,6 @@ const outWaiverOut = join(leagueDataDir, 'drops-gw-live.json')
 const outWaiverInTop = join(leagueDataDir, 'pickups-tenure.json')
 const outTradesPanel = join(leagueDataDir, 'trades-panel.json')
 
-/**
- * Trade id → { api element_in/out id → element id to use for GW live point sums }.
- * Drop detection still uses the API id (transaction log).
- */
-const TRADE_POINTS_OVERRIDES = {
-  424033: { 661: 666 },
-  /** API 728 = Röhl; league-accepted swap was Donnarumma (736). */
-  543307: { 728: 736 },
-}
-
 function leagueEntryMaps(details) {
   const leagueEntries = details.league_entries || []
   const entryName = new Map()
@@ -78,15 +68,6 @@ function isTxStrictlyAfterTrade(tx, trade) {
   return (tx.id ?? 0) > (trade.id ?? 0)
 }
 
-function scoreElementIdForTrade(tradeId, gainedElementId) {
-  const tid = Number(tradeId)
-  const map = TRADE_POINTS_OVERRIDES[tid]
-  if (!map) return gainedElementId
-  const gid = Number(gainedElementId)
-  const alt = map[gainedElementId] ?? map[gid]
-  return alt != null ? alt : gainedElementId
-}
-
 function findDropAfterTrade(sortedTx, fplEntry, elementId, trade) {
   for (const t of sortedTx) {
     if (!isTxStrictlyAfterTrade(t, trade)) continue
@@ -124,8 +105,12 @@ function computeTradeStint(
         startGw === endGw ? `${startGw}` : `${startGw}–${endGw}`,
     }
   }
-  const scorePid = scoreElementIdForTrade(trade.id, gainedElementId)
-  const totalPoints = sumPlayerRange(cache, scorePid, startGw, endGw)
+  const totalPoints = sumPlayerRange(
+    cache,
+    Number(gainedElementId),
+    startGw,
+    endGw
+  )
   return {
     startGw,
     endGw,
@@ -209,26 +194,46 @@ function buildTradesPanelJson(tradesList, sortedTx, details, cache, lastGw) {
   return tradesOut
 }
 
+const DRAFT_API = 'https://draft.premierleague.com/api'
+
+/**
+ * Draft event/live — same element id space as transactions & trades.
+ * (Classic live uses different id→player mapping; do not use here.)
+ */
+function livePointsMapFromDraftJson(j) {
+  const m = {}
+  const raw = j?.elements
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    for (const [k, v] of Object.entries(raw)) {
+      const id = Number(k)
+      if (!Number.isFinite(id)) continue
+      const pts = v?.stats?.total_points
+      m[id] = typeof pts === 'number' ? pts : 0
+    }
+    return m
+  }
+  if (Array.isArray(raw)) {
+    for (const el of raw) {
+      const pts = el.stats?.total_points
+      m[el.id] = typeof pts === 'number' ? pts : 0
+    }
+  }
+  return m
+}
+
 async function fetchGwMaps(lastGw) {
   /** @type {Record<number, Record<number, number>>} */
   const cache = {}
   for (let gw = 1; gw <= lastGw; gw++) {
     try {
-      const r = await fetch(
-        `https://fantasy.premierleague.com/api/event/${gw}/live/`
-      )
+      const r = await fetch(`${DRAFT_API}/event/${gw}/live`)
       if (!r.ok) {
         console.warn(`waiver-analytics: GW${gw} HTTP ${r.status}`)
         cache[gw] = {}
         continue
       }
       const j = await r.json()
-      const m = {}
-      for (const el of j.elements || []) {
-        const pts = el.stats?.total_points
-        m[el.id] = typeof pts === 'number' ? pts : 0
-      }
-      cache[gw] = m
+      cache[gw] = livePointsMapFromDraftJson(j)
     } catch (e) {
       console.warn(`waiver-analytics: GW${gw}`, e.message)
       cache[gw] = {}

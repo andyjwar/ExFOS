@@ -1,6 +1,17 @@
 # FPL API CORS proxy (Cloudflare Worker)
 
-The **Live** tab in the web app calls `fantasy.premierleague.com` from the browser. Many hosts (e.g. GitHub Pages) hit **CORS** blocks. This worker mirrors the public FPL `/api/*` endpoints and adds `Access-Control-Allow-*` headers.
+The **Live** tab calls FPL from the browser. Many hosts (e.g. GitHub Pages) hit **CORS** blocks. This worker mirrors public APIs and adds `Access-Control-Allow-*` headers:
+
+- **`/*`** → `https://fantasy.premierleague.com/api/*` (bootstrap-static, event live, etc.)
+- **`/draft/*`** → `https://draft.premierleague.com/api/*` (draft GW lineups — **not** classic `/entry/.../picks/`)
+
+Draft leagues must use the draft host for picks; classic picks would show the wrong XI for each manager.
+
+### 404 on `/draft/entry/...` after an app update
+
+Older deployments forwarded **every** path to `fantasy.premierleague.com`, so `/draft/...` returned **404**. Run **`npx wrangler deploy`** again from `web/workers/fpl-proxy/`.
+
+**Local dev without redeploying:** in `web/.env.local`, **remove or comment out** `VITE_FPL_PROXY_URL` and use `npm run dev` — Vite proxies `/__fpl/*` automatically (see `web/vite.config.js`).
 
 ## One-time setup
 
@@ -12,6 +23,9 @@ npm install
 npm run login    # opens browser — complete OAuth in the browser window
 npm run deploy
 ```
+
+**Local web app (`npm run dev` / `npx vite`):** Vite does not read GitHub secrets. From `web/`, run  
+`cp .env.local.example .env.local`, put your Worker URL in `VITE_FPL_PROXY_URL`, restart Vite.
 
 **Do not** run `npm install wrangler@4` here unless you know how to fix native `sharp` builds. This project stays on **Wrangler 3.x** on purpose; it deploys the same Worker and avoids `node-gyp` errors on macOS.
 

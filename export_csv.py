@@ -77,13 +77,15 @@ def export_player_ownership():
         data = json.load(f)
     status = data.get("element_status", [])
 
-    # Load player names from bootstrap
+    # Load player names from draft bootstrap (same element ids as element_status)
     players = {}
-    bootstrap_path = DATA_DIR / "bootstrap_fpl.json"
-    if bootstrap_path.exists():
-        with open(bootstrap_path) as f:
-            boot = json.load(f)
-        players = {str(p["id"]): p for p in boot.get("elements", [])}
+    for name in ("bootstrap_draft.json", "bootstrap_fpl.json"):
+        bootstrap_path = DATA_DIR / name
+        if bootstrap_path.exists():
+            with open(bootstrap_path) as f:
+                boot = json.load(f)
+            players = {str(p["id"]): p for p in boot.get("elements", [])}
+            break
 
     # Load team names
     teams = {}

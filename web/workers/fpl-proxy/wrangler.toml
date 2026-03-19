@@ -1,4 +1,4 @@
-# Cloudflare Workers — CORS proxy for fantasy.premierleague.com API
+# Cloudflare Workers — CORS proxy for FPL classic + draft APIs (see src/index.js)
 # https://developers.cloudflare.com/workers/wrangler/configuration/
 
 name = "tclot-fpl-proxy"

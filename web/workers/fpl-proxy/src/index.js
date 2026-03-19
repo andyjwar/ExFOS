@@ -1,9 +1,12 @@
 /**
- * CORS proxy for read-only FPL API calls (bootstrap-static, event/{gw}/live,
- * entry/{id}/event/{gw}/picks). Avoid * + / in this block comment — it would end the comment early.
+ * CORS proxy for read-only FPL API calls:
+ * - fantasy.premierleague.com/api/* (bootstrap-static, event/{gw}/live, …)
+ * - draft/* → draft.premierleague.com/api/* (bootstrap-static, event/{gw}/live, entry picks — draft ID space)
+ * Avoid * + / in this block comment — it would end the comment early.
  * Deploy: cd web/workers/fpl-proxy && npm run deploy
  */
-const UPSTREAM = 'https://fantasy.premierleague.com/api';
+const FANTASY_API = 'https://fantasy.premierleague.com/api';
+const DRAFT_API = 'https://draft.premierleague.com/api';
 
 function corsHeaders(env, request) {
   const origin = request.headers.get('Origin');
@@ -35,7 +38,12 @@ export default {
       return new Response('Bad path', { status: 400, headers: ch });
     }
 
-    const target = `${UPSTREAM}/${path}${url.search}`;
+    let upstreamBase = FANTASY_API;
+    if (path.startsWith('draft/')) {
+      path = path.slice('draft/'.length);
+      upstreamBase = DRAFT_API;
+    }
+    const target = `${upstreamBase}/${path}${url.search}`;
     const upstream = await fetch(target, {
       method: request.method,
       headers: {

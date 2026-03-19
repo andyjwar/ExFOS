@@ -123,8 +123,7 @@ function enrichTradePlayer(elementId, elemById, teamById) {
 
 /**
  * Manual UI labels when the draft trade API element id doesn’t match what the league
- * remembers. Point totals for those trades use `TRADE_POINTS_OVERRIDES` in
- * `build-waiver-gw-analytics.mjs` so `trades-panel.json` matches the corrected player.
+ * remembers (display only). GW point sums use draft `event/live` + draft element ids.
  */
 const TRADE_DISPLAY_FIXES = [
   {
@@ -778,6 +777,8 @@ function processLeagueData(raw, extras = {}) {
 
   return {
     league: details.league,
+    /** Raw H2H schedule (pair with `gameweek` for Live tab fixtures). */
+    matches: details.matches || [],
     standings: sortedByRank,
     tableRows,
     teamFormStripByEntry,

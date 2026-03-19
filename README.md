@@ -45,9 +45,8 @@ Exports will be in the `exports/` folder.
 | `details.json` | League info, teams, standings, H2H matches |
 | `element_status.json` | Which players are owned by which teams |
 | `transactions.json` | Draft picks, waiver moves, trades |
-| `bootstrap_draft.json` | Draft player pool and settings |
-| `bootstrap_fpl.json` | Full FPL player/team data (names, stats) |
-| `fixtures.json` | Premier League fixture list |
+| `bootstrap_draft.json` | Draft player pool + **canonical element ids** (names, teams, types) |
+| `fixtures.json` | Premier League fixture list (classic API — schedule only) |
 
 All data is saved under `data/`.
 
@@ -58,7 +57,7 @@ All data is saved under `data/`.
 - **Element status**: Player ID → owner (entry_id)
 - **Transactions**: Transfers, draft picks, trades with timestamps
 
-Merge `element_status` with `bootstrap_fpl.elements` to get player names and stats. Use `league_entries` to map `entry_id` to team names.
+Merge `element_status` with **`bootstrap_draft.json`** `elements` for player names (draft ids — **not** the same numbering as classic FPL). Use `league_entries` to map `entry_id` to team names.
 
 ## Example: Load in Python
 
@@ -111,9 +110,9 @@ cd web && npm run dev
 
 ### Dashboard data (waivers, player names)
 
-`copy-data` also builds **`fpl-mini.json`** from `bootstrap_fpl.json` (player + team names for **Most waivered**). Ensure **`transactions.json`** and **`bootstrap_fpl.json`** exist (full `ingest.py`). Then `cd web && npm run dev`.
+`copy-data` builds **`fpl-mini.json`** from **`bootstrap_draft.json`** (player + team names for **Most waivered** and trades UI). Ensure **`transactions.json`** and **`bootstrap_draft.json`** exist (`ingest.py`). Then `cd web && npm run dev`.
 
-**Pickup / drop / trades analytics:** **`build-waiver-gw-analytics.mjs`** runs on each dev/build, calls FPL **`/api/event/{GW}/live/`** for every finished GW, then writes **`drops-gw-live.json`** (drop-week pts), **`pickups-tenure.json`** (top pickups + team totals), and **`trades-panel.json`** (processed trades + points per acquired player through their stint on the new squad). Requires **`transactions.json`** and/or **`trades.json`** (both come from **`ingest.py`** / local fetch). Skip live fetches with **`SKIP_WAIVER_GW_SCORES=1`**.
+**Pickup / drop / trades analytics:** **`build-waiver-gw-analytics.mjs`** runs on each dev/build, calls **draft** **`/api/event/{GW}/live`** (no trailing slash) for every finished GW, then writes **`drops-gw-live.json`**, **`pickups-tenure.json`**, and **`trades-panel.json`**. Requires **`transactions.json`** and/or **`trades.json`**. Skip live fetches with **`SKIP_WAIVER_GW_SCORES=1`**.
 
 ### GitHub Pages — link the live site to your league
 

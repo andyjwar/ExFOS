@@ -13,9 +13,10 @@ from pathlib import Path
 
 import requests
 
-# API base URLs
+# API base URLs (player/element IDs: always use DRAFT_API — classic uses a different id→player map)
 DRAFT_API = "https://draft.premierleague.com/api"
-FPL_API = "https://fantasy.premierleague.com/api"
+# Classic fixtures only (schedule / team pairing — not used for element lookups)
+FPL_FIXTURES_API = "https://fantasy.premierleague.com/api"
 
 
 def get_league_id() -> int:
@@ -51,7 +52,6 @@ def ingest_league(league_id: int, output_dir: Path) -> None:
         ("transactions", f"{DRAFT_API}/draft/league/{league_id}/transactions"),
         ("trades", f"{DRAFT_API}/draft/league/{league_id}/trades"),
         ("bootstrap_draft", f"{DRAFT_API}/bootstrap-static"),
-        ("bootstrap_fpl", f"{FPL_API}/bootstrap-static"),
     ]
 
     for name, url in endpoints:
@@ -67,10 +67,10 @@ def ingest_league(league_id: int, output_dir: Path) -> None:
         except Exception as e:
             print(f"  -> error: {e}")
 
-    # Optional: fetch fixtures for match data (from main FPL API)
+    # Fixtures: classic endpoint (schedule data; no draft element ids)
     print("Fetching fixtures...")
     try:
-        fixtures = fetch_json(f"{FPL_API}/fixtures")
+        fixtures = fetch_json(f"{FPL_FIXTURES_API}/fixtures")
         with open(output_dir / "fixtures.json", "w") as f:
             json.dump(fixtures, f, indent=2)
         print(f"  -> saved to {output_dir / 'fixtures.json'}")

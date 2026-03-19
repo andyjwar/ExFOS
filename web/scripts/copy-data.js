@@ -9,7 +9,6 @@ const dataDir = join(__dirname, '../../data');
 const dest = join(__dirname, '../public/league-data');
 const ingestedDetails = join(dataDir, 'details.json');
 const sampleDetails = join(__dirname, '../sample-details.json');
-const bootstrapFpl = join(dataDir, 'bootstrap_fpl.json');
 
 mkdirSync(dest, { recursive: true });
 const destDetails = join(dest, 'details.json');
@@ -54,9 +53,19 @@ if (existsSync(ingestedDetails)) {
   console.warn('No data/details.json and no sample-details.json.');
 }
 
-if (existsSync(bootstrapFpl)) {
+/** Draft bootstrap only — element ids match draft transactions, trades, and Live tab. */
+const bootstrapDraftData = join(dataDir, 'bootstrap_draft.json');
+const bootstrapDraftPublic = join(dest, 'bootstrap_draft.json');
+
+const bootstrapDraftPath = existsSync(bootstrapDraftData)
+  ? bootstrapDraftData
+  : existsSync(bootstrapDraftPublic)
+    ? bootstrapDraftPublic
+    : null;
+
+if (bootstrapDraftPath) {
   try {
-    const b = JSON.parse(readFileSync(bootstrapFpl, 'utf8'));
+    const b = JSON.parse(readFileSync(bootstrapDraftPath, 'utf8'));
     const mini = {
       teams: (b.teams || []).map((t) => ({
         id: t.id,
@@ -72,8 +81,14 @@ if (existsSync(bootstrapFpl)) {
       })),
     };
     writeFileSync(join(dest, 'fpl-mini.json'), JSON.stringify(mini));
-    console.log('fpl-mini.json written (player + team names for waivers).');
+    console.log(
+      'fpl-mini.json written from bootstrap_draft.json (draft element IDs).'
+    );
   } catch (e) {
     console.warn('fpl-mini.json skip:', e.message);
   }
+} else {
+  console.warn(
+    'fpl-mini.json not built: no bootstrap_draft.json in data/ or public/league-data/. Run ingest.py or fetch-league-if-needed.'
+  );
 }

@@ -38,7 +38,8 @@ if (!id) {
 }
 
 const DRAFT = 'https://draft.premierleague.com/api'
-const FPL = 'https://fantasy.premierleague.com/api'
+/** Classic API — fixtures only (no draft player id space). */
+const FPL_CLASSIC = 'https://fantasy.premierleague.com/api'
 
 async function save(name, url) {
   const r = await fetch(url)
@@ -57,8 +58,7 @@ try {
   await save('transactions', `${DRAFT}/draft/league/${id}/transactions`)
   await save('trades', `${DRAFT}/draft/league/${id}/trades`)
   await save('bootstrap_draft', `${DRAFT}/bootstrap-static`)
-  await save('bootstrap_fpl', `${FPL}/bootstrap-static`)
-  const fx = await fetch(`${FPL}/fixtures`)
+  const fx = await fetch(`${FPL_CLASSIC}/fixtures`)
   if (fx.ok) {
     writeFileSync(
       join(dataDir, 'fixtures.json'),
