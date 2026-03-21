@@ -484,133 +484,6 @@ export function LiveScores({
         ) : null}
       </section>
 
-      {tableRows?.length ? (
-        <section
-          className="tile tile--compact tile--live-standings"
-          aria-labelledby="live-standings-heading"
-        >
-          <div className="tile-head-row tile-head-row--tight">
-            <h2 id="live-standings-heading" className="tile-title tile-title--sm">
-              Live standings
-            </h2>
-            <span className="league-pill league-pill--sm">GW {gameweek}</span>
-          </div>
-          <p className="tile-hint muted tile-hint--tight">
-            Projected <strong>PTS</strong> = season H2H total + live GW bonus (3 / 1 / 0 vs this GW
-            opponent). <strong>For</strong> / <strong>Faced</strong> = season FPL points for/against
-            plus this GW live totals when available.
-          </p>
-          <div className="table-scroll table-scroll--standings-open">
-            <table className="standings-table standings-table--sidebar standings-table--live">
-              <thead>
-                <tr>
-                  <th className="col-rank">#</th>
-                  <th className="col-team">Team</th>
-                  <th className="col-num col-pl">PL</th>
-                  <th className="col-num col-wdl">W</th>
-                  <th className="col-num col-wdl">D</th>
-                  <th className="col-num col-wdl">L</th>
-                  <th
-                    className="col-num col-for"
-                    title="Season points for + this GW live points (when loaded)"
-                  >
-                    For
-                  </th>
-                  <th
-                    className="col-num col-faced"
-                    title="Season points against + opponent live GW points when paired"
-                  >
-                    Faced
-                  </th>
-                  <th className="col-num col-gd">GD</th>
-                  <th className="col-num col-live-gw" title="Live H2H league points this GW">
-                    GW
-                  </th>
-                  <th className="col-num col-pts">PTS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liveStandingsRows.map((row) => {
-                  const trClass = [
-                    row.liveRank === 1 ? 'row-highlight' : '',
-                    row.liveRank === 1 ? 'standings-row--divider-below' : '',
-                    row.liveRank === 8 ? 'standings-row--8th standings-row--divider-above' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ');
-                  const moveUp = row.rankMove > 0;
-                  const moveDown = row.rankMove < 0;
-                  const gwClass =
-                    row.h2hBonus === 3
-                      ? 'live-standings-gw-val--win'
-                      : row.h2hBonus === 1
-                        ? 'live-standings-gw-val--draw'
-                        : 'live-standings-gw-val--loss';
-                  return (
-                    <tr key={row.league_entry} className={trClass || undefined}>
-                      <td className="col-rank">{row.liveRank}</td>
-                      <td className="col-team">
-                        <span className="live-standings-team-name">
-                          {row.teamName === STANDINGS_TABLE_AVATAR_TEAM ? (
-                            <TeamAvatar
-                              entryId={row.league_entry}
-                              name={row.teamName}
-                              size="sm"
-                              logoMap={teamLogoMap}
-                            />
-                          ) : null}
-                          <span className="team-name team-name--sidebar">{row.teamName}</span>
-                          {moveUp ? (
-                            <span
-                              className="live-standings-move live-standings-move--up"
-                              title={`Up ${row.rankMove} vs league #${row.rank}`}
-                              aria-label={`Up ${row.rankMove} places vs league position ${row.rank}`}
-                            >
-                              ↑
-                            </span>
-                          ) : null}
-                          {moveDown ? (
-                            <span
-                              className="live-standings-move live-standings-move--down"
-                              title={`Down ${-row.rankMove} vs league #${row.rank}`}
-                              aria-label={`Down ${-row.rankMove} places vs league position ${row.rank}`}
-                            >
-                              ↓
-                            </span>
-                          ) : null}
-                        </span>
-                      </td>
-                      <td className="col-num col-pl">{row.pl}</td>
-                      <td className="col-num col-wdl">{row.matches_won}</td>
-                      <td className="col-num col-wdl">{row.matches_drawn}</td>
-                      <td className="col-num col-wdl">{row.matches_lost}</td>
-                      <td className="col-num col-for tabular" title="Season For + live GW">
-                        {row.projectedFor}
-                      </td>
-                      <td className="col-num col-faced tabular" title="Season Faced + opp live GW">
-                        {row.projectedGa}
-                      </td>
-                      <td className="col-num col-gd tabular">
-                        {row.projectedGd > 0 ? `+${row.projectedGd}` : row.projectedGd}
-                      </td>
-                      <td className="col-num col-live-gw tabular">
-                        <strong className={gwClass}>{formatGwLeaguePtsBonus(row.h2hBonus)}</strong>
-                      </td>
-                      <td className="col-num col-pts">
-                        <strong>{row.projectedPts}</strong>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="table-foot muted standings-landscape-hint" role="note">
-            On mobile, turn your device to landscape for the full table.
-          </p>
-        </section>
-      ) : null}
-
       {useFixtureLayout
         ? gwMatches.map((m) => {
             const homeId = Number(m.league_entry_1);
@@ -817,6 +690,133 @@ export function LiveScores({
               <SquadLineupPanel squad={squad} portraitLineup={portraitLineup} />
             </section>
           ))}
+
+      {tableRows?.length ? (
+        <section
+          className="tile tile--compact tile--live-standings"
+          aria-labelledby="live-standings-heading"
+        >
+          <div className="tile-head-row tile-head-row--tight">
+            <h2 id="live-standings-heading" className="tile-title tile-title--sm">
+              Live standings
+            </h2>
+            <span className="league-pill league-pill--sm">GW {gameweek}</span>
+          </div>
+          <p className="tile-hint muted tile-hint--tight">
+            Projected <strong>PTS</strong> = season H2H total + live GW bonus (3 / 1 / 0 vs this GW
+            opponent). <strong>For</strong> / <strong>Faced</strong> = season FPL points for/against
+            plus this GW live totals when available.
+          </p>
+          <div className="table-scroll table-scroll--standings-open">
+            <table className="standings-table standings-table--sidebar standings-table--live">
+              <thead>
+                <tr>
+                  <th className="col-rank">#</th>
+                  <th className="col-team">Team</th>
+                  <th className="col-num col-pl">PL</th>
+                  <th className="col-num col-wdl">W</th>
+                  <th className="col-num col-wdl">D</th>
+                  <th className="col-num col-wdl">L</th>
+                  <th
+                    className="col-num col-for"
+                    title="Season points for + this GW live points (when loaded)"
+                  >
+                    For
+                  </th>
+                  <th
+                    className="col-num col-faced"
+                    title="Season points against + opponent live GW points when paired"
+                  >
+                    Faced
+                  </th>
+                  <th className="col-num col-gd">GD</th>
+                  <th className="col-num col-live-gw" title="Live H2H league points this GW">
+                    GW
+                  </th>
+                  <th className="col-num col-pts">PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveStandingsRows.map((row) => {
+                  const trClass = [
+                    row.liveRank === 1 ? 'row-highlight' : '',
+                    row.liveRank === 1 ? 'standings-row--divider-below' : '',
+                    row.liveRank === 8 ? 'standings-row--8th standings-row--divider-above' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
+                  const moveUp = row.rankMove > 0;
+                  const moveDown = row.rankMove < 0;
+                  const gwClass =
+                    row.h2hBonus === 3
+                      ? 'live-standings-gw-val--win'
+                      : row.h2hBonus === 1
+                        ? 'live-standings-gw-val--draw'
+                        : 'live-standings-gw-val--loss';
+                  return (
+                    <tr key={row.league_entry} className={trClass || undefined}>
+                      <td className="col-rank">{row.liveRank}</td>
+                      <td className="col-team">
+                        <span className="live-standings-team-name">
+                          {row.teamName === STANDINGS_TABLE_AVATAR_TEAM ? (
+                            <TeamAvatar
+                              entryId={row.league_entry}
+                              name={row.teamName}
+                              size="sm"
+                              logoMap={teamLogoMap}
+                            />
+                          ) : null}
+                          <span className="team-name team-name--sidebar">{row.teamName}</span>
+                          {moveUp ? (
+                            <span
+                              className="live-standings-move live-standings-move--up"
+                              title={`Up ${row.rankMove} vs league #${row.rank}`}
+                              aria-label={`Up ${row.rankMove} places vs league position ${row.rank}`}
+                            >
+                              ↑
+                            </span>
+                          ) : null}
+                          {moveDown ? (
+                            <span
+                              className="live-standings-move live-standings-move--down"
+                              title={`Down ${-row.rankMove} vs league #${row.rank}`}
+                              aria-label={`Down ${-row.rankMove} places vs league position ${row.rank}`}
+                            >
+                              ↓
+                            </span>
+                          ) : null}
+                        </span>
+                      </td>
+                      <td className="col-num col-pl">{row.pl}</td>
+                      <td className="col-num col-wdl">{row.matches_won}</td>
+                      <td className="col-num col-wdl">{row.matches_drawn}</td>
+                      <td className="col-num col-wdl">{row.matches_lost}</td>
+                      <td className="col-num col-for tabular" title="Season For + live GW">
+                        {row.projectedFor}
+                      </td>
+                      <td className="col-num col-faced tabular" title="Season Faced + opp live GW">
+                        {row.projectedGa}
+                      </td>
+                      <td className="col-num col-gd tabular">
+                        {row.projectedGd > 0 ? `+${row.projectedGd}` : row.projectedGd}
+                      </td>
+                      <td className="col-num col-live-gw tabular">
+                        <strong className={gwClass}>{formatGwLeaguePtsBonus(row.h2hBonus)}</strong>
+                      </td>
+                      <td className="col-num col-pts">
+                        <strong>{row.projectedPts}</strong>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="table-foot muted standings-landscape-hint" role="note">
+            On mobile, turn your device to landscape for the full table.
+          </p>
+        </section>
+      ) : null}
 
       {useFixtureLayout && orphanSquads.length > 0
         ? orphanSquads.map((squad) => (
