@@ -479,19 +479,10 @@ function App() {
       <main className="dashboard-layout dashboard-layout--with-nav">
         <div className="dashboard-page-hero">
           <header className="page-header page-header--centered">
-            <div className="title-hero-row">
-              <section className="tile tile--title-banner" aria-label="League">
-                <h1 className="page-title-main">{LEAGUE_TITLE}</h1>
-                <h2 className="page-title-season">{LEAGUE_SEASON_SUB}</h2>
-              </section>
-              <div className="header-team-strip" aria-label="League teams">
-                {teamsForFormSelect.map((t) => (
-                  <div key={t.id} className="header-team-strip__item" title={t.teamName}>
-                    <TeamAvatar entryId={t.id} name={t.teamName} size="header" logoMap={teamLogoMap} />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <section className="tile tile--title-banner" aria-label="League">
+              <h1 className="page-title-main">{LEAGUE_TITLE}</h1>
+              <h2 className="page-title-season">{LEAGUE_SEASON_SUB}</h2>
+            </section>
             {fetchFailedDemo && (
               <div className="data-banner data-banner--error" role="alert">
                 <strong>League file didn’t load</strong> (wrong URL or deploy). Showing demo only.{' '}
@@ -1336,6 +1327,7 @@ function App() {
               onGameweekChange={setLiveGw}
               onBootstrapLiveMeta={onBootstrapLiveMeta}
               teamLogoMap={teamLogoMap}
+              tableRows={tableRows}
             />
           )}
 

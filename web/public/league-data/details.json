@@ -16,7 +16,7 @@
     "start_event": 1,
     "stop_event": 38,
     "trades": "y",
-    "transaction_mode": "free-agency",
+    "transaction_mode": "waivers",
     "variety": "x",
     "drafts": [
       {
@@ -2138,10 +2138,10 @@
       "event": 31,
       "finished": false,
       "league_entry_1": 347140,
-      "league_entry_1_points": 0,
+      "league_entry_1_points": 5,
       "league_entry_2": 129538,
       "league_entry_2_points": 0,
-      "started": false,
+      "started": true,
       "winning_league_entry": null,
       "winning_method": null
     },
@@ -2152,7 +2152,7 @@
       "league_entry_1_points": 0,
       "league_entry_2": 303008,
       "league_entry_2_points": 0,
-      "started": false,
+      "started": true,
       "winning_league_entry": null,
       "winning_method": null
     },
@@ -2160,10 +2160,10 @@
       "event": 31,
       "finished": false,
       "league_entry_1": 129723,
-      "league_entry_1_points": 0,
+      "league_entry_1_points": 4,
       "league_entry_2": 274219,
-      "league_entry_2_points": 0,
-      "started": false,
+      "league_entry_2_points": 1,
+      "started": true,
       "winning_league_entry": null,
       "winning_method": null
     },
@@ -2171,10 +2171,10 @@
       "event": 31,
       "finished": false,
       "league_entry_1": 129902,
-      "league_entry_1_points": 0,
+      "league_entry_1_points": 2,
       "league_entry_2": 202608,
-      "league_entry_2_points": 0,
-      "started": false,
+      "league_entry_2_points": 24,
+      "started": true,
       "winning_league_entry": null,
       "winning_method": null
     },
@@ -2184,8 +2184,8 @@
       "league_entry_1": 133689,
       "league_entry_1_points": 0,
       "league_entry_2": 172275,
-      "league_entry_2_points": 0,
-      "started": false,
+      "league_entry_2_points": 7,
+      "started": true,
       "winning_league_entry": null,
       "winning_method": null
     },
@@ -2195,8 +2195,8 @@
       "league_entry_1": 141934,
       "league_entry_1_points": 0,
       "league_entry_2": 159957,
-      "league_entry_2_points": 0,
-      "started": false,
+      "league_entry_2_points": 3,
+      "started": true,
       "winning_league_entry": null,
       "winning_method": null
     },
@@ -2704,7 +2704,7 @@
       "total": 57
     },
     {
-      "last_rank": 5,
+      "last_rank": 4,
       "league_entry": 303008,
       "matches_drawn": 0,
       "matches_lost": 13,
@@ -2717,7 +2717,7 @@
       "total": 51
     },
     {
-      "last_rank": 4,
+      "last_rank": 5,
       "league_entry": 172275,
       "matches_drawn": 1,
       "matches_lost": 13,
@@ -2743,7 +2743,7 @@
       "total": 45
     },
     {
-      "last_rank": 8,
+      "last_rank": 7,
       "league_entry": 129538,
       "matches_drawn": 3,
       "matches_lost": 14,
@@ -2756,7 +2756,7 @@
       "total": 42
     },
     {
-      "last_rank": 9,
+      "last_rank": 8,
       "league_entry": 129723,
       "matches_drawn": 3,
       "matches_lost": 14,
@@ -2769,7 +2769,7 @@
       "total": 42
     },
     {
-      "last_rank": 10,
+      "last_rank": 9,
       "league_entry": 202608,
       "matches_drawn": 2,
       "matches_lost": 15,
@@ -2782,7 +2782,7 @@
       "total": 41
     },
     {
-      "last_rank": 7,
+      "last_rank": 10,
       "league_entry": 133689,
       "matches_drawn": 1,
       "matches_lost": 16,

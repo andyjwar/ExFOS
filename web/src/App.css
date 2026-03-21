@@ -1557,22 +1557,88 @@ button.live-fixture-banner--toggle {
   padding-left: 10px;
 }
 
-/* Portrait phone: short names; Mins / DC / ⚽ / 🍑 / Pts — hide Pos, Bonus, alarm */
-@media (max-width: 560px) and (orientation: portrait) {
+/* Mobile portrait: wide player column, compact stats (cf. lineup reference) — hide Pos, Bonus, alarm */
+@media (max-width: 719px) and (orientation: portrait) {
   .live-picks-table-wrap--lineup-portrait .live-picks-col-pos,
   .live-picks-table-wrap--lineup-portrait .live-picks-col-bonus,
   .live-picks-table-wrap--lineup-portrait .live-picks-col-alarm {
     display: none;
   }
 
+  /* Collapse hidden cols so <colgroup> does not steal width from the player column */
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-pos,
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-bonus,
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-alarm {
+    visibility: collapse;
+    width: 0 !important;
+    min-width: 0;
+  }
+
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-player {
+    width: 50%;
+  }
+
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-mins {
+    width: 2.5rem;
+  }
+
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-dc {
+    width: 2rem;
+  }
+
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-goals,
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-assists {
+    width: 2.2rem;
+  }
+
+  .live-picks-table-wrap--lineup-portrait col.live-picks-col-pts {
+    width: 3rem;
+  }
+
   .live-picks-table-wrap--lineup-portrait .live-picks-table {
     min-width: 0;
-    font-size: 0.72rem;
+    width: 100%;
+    font-size: 0.82rem;
   }
 
   .live-picks-table-wrap--lineup-portrait .live-picks-table th,
   .live-picks-table-wrap--lineup-portrait .live-picks-table td {
-    padding: 5px 4px;
+    padding: 7px 5px;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-picks-table th {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-player-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-player-cell {
+    gap: 6px;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-kit-img {
+    width: 24px;
+    height: 30px;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-kit-fallback {
+    width: 24px;
+    height: 24px;
+    font-size: 0.6rem;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-picks-col-num,
+  .live-picks-table-wrap--lineup-portrait .live-picks-col-dc {
+    font-size: 0.8rem;
+  }
+
+  .live-picks-table-wrap--lineup-portrait .live-picks-col-pts--section {
+    padding-left: 8px;
   }
 }
 
@@ -2007,8 +2073,8 @@ button.live-fixture-banner--toggle {
 
 .tile--title-banner {
   width: 100%;
-  max-width: none;
-  margin: 0 0 16px;
+  max-width: 720px;
+  margin: 0 auto 16px;
   text-align: center;
   padding: 18px 22px;
   box-sizing: border-box;
@@ -2042,37 +2108,6 @@ button.live-fixture-banner--toggle {
 .tile--title-banner .brand-sub--in-title-tile {
   color: rgba(255, 255, 255, 0.88);
   font-weight: 600;
-}
-
-.header-team-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 10px 14px;
-  padding: 8px 8px 4px;
-  margin-top: 0;
-}
-
-.header-team-strip__item {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  transition:
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.header-team-strip__item:hover {
-  background: rgba(0, 0, 0, 0.04);
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .brand-row {
@@ -2163,19 +2198,12 @@ button.live-fixture-banner--toggle {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* League header: dark strap + pitch accent */
+/* League header: full pitch green (same as nav active / primary CTA) */
 .tile.tile--title-banner {
-  background: linear-gradient(
-    180deg,
-    var(--fm-title-banner-top) 0%,
-    var(--fm-title-banner-top) calc(100% - var(--fm-title-banner-band)),
-    var(--fm-title-banner-bottom) calc(100% - var(--fm-title-banner-band)),
-    var(--fm-title-banner-bottom) 100%
-  );
-  border: 1px solid var(--fm-border);
-  border-bottom: 3px solid var(--fm-pitch);
+  background: var(--fm-accent-gradient);
+  border: none;
   border-radius: 12px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--fm-accent-glow);
   color: #fff;
 }
 
@@ -2853,41 +2881,7 @@ button.live-fixture-banner--toggle {
   line-height: 1.45;
 }
 
-.title-hero-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-@media (min-width: 961px) {
-  .title-hero-row {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 20px;
-  }
-
-  .title-hero-row .tile--title-banner {
-    flex: 1 1 320px;
-    max-width: 720px;
-  }
-
-  .title-hero-row .header-team-strip {
-    flex: 0 1 auto;
-  }
-}
-
-@media (max-width: 960px) {
-  .title-hero-row {
-    flex-direction: column;
-    align-items: center;
-  }
-}
-
-@media (max-width: 560px) {
+@media (max-width: 719px) {
   .tile.tile--compact.live-fixture-tile {
     padding: 10px 10px 12px;
   }
@@ -2946,4 +2940,53 @@ button.live-fixture-banner--toggle {
     padding: 8px 6px;
     font-size: 0.85rem;
   }
+
+  /* Live standings: hide W/D/L, Faced, GD in portrait */
+  .standings-table--live .col-wdl,
+  .standings-table--live .col-faced,
+  .standings-table--live .col-gd {
+    display: none;
+  }
+}
+
+/* Live standings (Live tab): movement arrows, GW colours, 8th divider */
+.live-standings-team-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.live-standings-move {
+  font-weight: 800;
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
+.live-standings-move--up {
+  color: var(--fm-win);
+}
+
+.live-standings-move--down {
+  color: #dc2626;
+}
+
+strong.live-standings-gw-val--win {
+  color: var(--fm-win);
+  font-weight: 800;
+}
+
+strong.live-standings-gw-val--draw {
+  color: var(--fm-draw);
+  font-weight: 800;
+}
+
+strong.live-standings-gw-val--loss {
+  color: var(--fm-muted);
+  font-weight: 700;
+}
+
+.standings-table tbody tr.standings-row--divider-above td {
+  border-top: 1px dashed var(--fm-standings-cut);
 }
