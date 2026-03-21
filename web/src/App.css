@@ -56,16 +56,16 @@
   align-items: start;
 }
 
+/* Single column: title strip → horizontal nav → content (same width as standings tile) */
 .dashboard-layout--with-nav {
-  grid-template-columns: minmax(168px, 200px) minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  gap: 18px 24px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: 14px;
+  align-items: stretch;
 }
 
-/* Row 1: title + team strip full width; row 2: nav lines up with first content tile */
 .dashboard-layout--with-nav > .dashboard-page-hero {
-  grid-column: 1 / -1;
+  grid-column: 1;
   grid-row: 1;
   min-width: 0;
 }
@@ -74,16 +74,32 @@
   grid-column: 1;
   grid-row: 2;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
   gap: 8px;
-  position: sticky;
-  top: 12px;
-  align-self: start;
+  align-items: stretch;
+  justify-content: stretch;
+  min-width: 0;
+  position: static;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
 }
 
 .dashboard-layout--with-nav > .dashboard-content {
-  grid-column: 2;
-  grid-row: 2;
+  grid-column: 1;
+  grid-row: 3;
+  min-width: 0;
+}
+
+.dashboard-layout--with-nav .dashboard-nav__btn {
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+  padding: 10px 8px;
+  font-size: 0.82rem;
 }
 
 .dashboard-nav__btn {
@@ -159,39 +175,19 @@
     grid-template-columns: 1fr;
   }
 
-  .dashboard-layout--with-nav {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
+  .dashboard-sidebar {
+    position: static !important;
   }
+}
 
-  .dashboard-layout--with-nav > .dashboard-page-hero {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
+@media (max-width: 640px) {
   .dashboard-layout--with-nav > .dashboard-nav {
-    grid-column: 1;
-    grid-row: auto;
-    position: static;
-    flex-direction: row;
     flex-wrap: wrap;
   }
 
-  .dashboard-layout--with-nav > .dashboard-content {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
   .dashboard-layout--with-nav .dashboard-nav__btn {
-    flex: 1;
-    min-width: 140px;
-    justify-content: center;
-    text-align: center;
-    justify-content: center;
-  }
-
-  .dashboard-sidebar {
-    position: static !important;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 8rem;
   }
 }
 
