@@ -1286,22 +1286,6 @@ function App() {
                 <h2 id="trades-heading" className="tile-title tile-title--sm">
                   Trades
                 </h2>
-                <p className="tile-hint muted tile-hint--tight">
-                  Processed trades only (FPL state <code>p</code>). <strong>Pts</strong> = FPL total for
-                  the acquired player from <strong>GW a–b</strong> on that manager&apos;s squad (from
-                  trade week until first drop, or last finished GW if still there). Club kit ={' '}
-                  player&apos;s Premier League team. Names come from today&apos;s FPL data for the{' '}
-                  <strong>element id</strong> stored in the official draft trade feed — if that ever
-                  disagrees with what you remember, compare trade id / ids on{' '}
-                  <a
-                    href="https://draft.premierleague.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    draft.premierleague.com
-                  </a>
-                  .
-                </p>
                 {tradesPanelRows?.length ? (
                   <div className="trades-list">
                     {tradesPanelRows.map((trade) => (
@@ -1330,15 +1314,6 @@ function App() {
               tableRows={tableRows}
             />
           )}
-
-          <footer className="page-footer muted">
-            Draft data from{' '}
-            <a href="https://draft.premierleague.com" target="_blank" rel="noopener noreferrer">
-              draft.premierleague.com
-            </a>{' '}
-            (refresh with <code>ingest.py</code>). <strong>Live Scoring</strong> tab loads picks &amp; scores
-            via your proxy from the draft FPL APIs in your browser.
-          </footer>
         </div>
       </main>
     </div>

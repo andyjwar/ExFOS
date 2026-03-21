@@ -2846,23 +2846,6 @@ button.live-fixture-banner--toggle {
   background: var(--fm-table-head);
 }
 
-.page-footer {
-  text-align: center;
-  font-size: 0.8rem;
-  padding-top: 8px;
-}
-
-.page-footer a {
-  color: var(--fm-text-strong);
-}
-
-.page-footer code {
-  background: var(--fm-row-hi);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
 .muted {
   color: var(--fm-muted);
 }

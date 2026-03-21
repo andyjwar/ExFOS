@@ -702,11 +702,6 @@ export function LiveScores({
             </h2>
             <span className="league-pill league-pill--sm">GW {gameweek}</span>
           </div>
-          <p className="tile-hint muted tile-hint--tight">
-            Projected <strong>PTS</strong> = season H2H total + live GW bonus (3 / 1 / 0 vs this GW
-            opponent). <strong>For</strong> / <strong>Faced</strong> = season FPL points for/against
-            plus this GW live totals when available.
-          </p>
           <div className="table-scroll table-scroll--standings-open">
             <table className="standings-table standings-table--sidebar standings-table--live">
               <thead>
