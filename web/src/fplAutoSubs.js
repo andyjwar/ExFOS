@@ -1,6 +1,7 @@
 /**
- * FPL-style automatic substitutions for draft / live projection.
- * Official API subs take precedence; otherwise simulate using DNP + bench order + formation rules.
+ * Automatic substitutions for draft / live projection.
+ * Official API subs take precedence; otherwise we simulate using DNP + bench order (see
+ * `findProjectedReplacement` for GK / DEF / MID / FWD rules).
  */
 
 /** @param {object} p */
@@ -19,8 +20,57 @@ function isDef(p) {
 }
 
 /** @param {object} p */
+function isMid(p) {
+  return p.posSingular === 'MID' || Number(p.elementTypeId) === 3;
+}
+
+/** @param {object} p */
+function isFwd(p) {
+  return p.posSingular === 'FWD' || Number(p.elementTypeId) === 4;
+}
+
+/** @param {object} p */
 function playedBench(p) {
   return Number(p.minutes) > 0;
+}
+
+/**
+ * Bench “slots” 2–4 = 2nd–4th bench picks (FPL draft pick 13, 14, 15 — skip first bench 12).
+ * @param {object} p
+ */
+function isBenchSlot2Through4(p) {
+  const slot = Number(p.pickPosition);
+  return slot >= 13 && slot <= 15;
+}
+
+/**
+ * @param {object} out DNP starter being replaced
+ * @param {object[]} XI current XI (11)
+ * @param {object[]} benchPool bench sorted by pickPosition ascending
+ * @returns {object | null}
+ */
+function findProjectedReplacement(out, XI, benchPool) {
+  if (isGk(out)) {
+    return benchPool.find((p) => isGk(p) && playedBench(p)) ?? null;
+  }
+
+  if (isDef(out)) {
+    const defCountInXi = XI.filter(isDef).length;
+    if (defCountInXi === 3) {
+      return (
+        benchPool.find(
+          (p) => isDef(p) && playedBench(p) && isBenchSlot2Through4(p),
+        ) ?? null
+      );
+    }
+    return benchPool.find((p) => !isGk(p) && playedBench(p)) ?? null;
+  }
+
+  if (isMid(out) || isFwd(out)) {
+    return benchPool.find((p) => !isGk(p) && playedBench(p)) ?? null;
+  }
+
+  return benchPool.find((p) => !isGk(p) && playedBench(p)) ?? null;
 }
 
 /**
@@ -131,28 +181,7 @@ export function simulateProjectedAutoSubs(starters, bench) {
       out = dnpList.slice().sort((a, b) => a.pickPosition - b.pickPosition)[0];
     }
 
-    if (isGk(out)) {
-      const rep = benchPool.find((p) => isGk(p) && playedBench(p));
-      if (!rep) break;
-      if (!swapXiAndBench(XI, benchPool, out, rep)) break;
-      projectedAutoSubs.push({ element_in: rep.element, element_out: out.element });
-      continue;
-    }
-
-    const defCountInXi = XI.filter(isDef).length;
-    const restrictToDef = isDef(out) && defCountInXi === 3;
-
-    let found = null;
-    for (const cand of benchPool) {
-      if (!playedBench(cand)) continue;
-      if (isGk(cand)) continue;
-      if (restrictToDef && !isDef(cand)) continue;
-      const trialXi = XI.map((p) => (p === out ? cand : p));
-      if (validFormation(trialXi)) {
-        found = cand;
-        break;
-      }
-    }
+    const found = findProjectedReplacement(out, XI, benchPool);
     if (!found) break;
 
     if (!swapXiAndBench(XI, benchPool, out, found)) break;
