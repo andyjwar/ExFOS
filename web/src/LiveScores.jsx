@@ -82,6 +82,11 @@ function livePickMinsCellClass(mins, clubGwFixturesFinished) {
   return '';
 }
 
+/** GW finished for their club, 0 minutes — DNP / did not feature. */
+function isFinishedZeroMinutes(mins, clubGwFixturesFinished) {
+  return (Number(mins) || 0) === 0 && clubGwFixturesFinished === true;
+}
+
 /** GK/DEF: ≥10 DC pts; MID/FWD: ≥12 (FPL element types 1–4). */
 function livePickDcGreenClass(elementTypeId, dcPoints) {
   const d = Number(dcPoints) || 0;
@@ -151,13 +156,22 @@ function PicksTable({ rows, portraitLineup }) {
         </thead>
         <tbody>
           {rows.map((r) => {
+            const dnpFinished = isFinishedZeroMinutes(r.minutes, r.clubGwFixturesFinished);
             const nameDisplay =
               portraitLineup && r.displayName
                 ? shortLineupName(r.displayName)
                 : (r.displayName ?? r.web_name);
             const fullTitle = `${r.web_name} · #${r.element}${r.teamName ? ` · ${r.teamName}` : ''}`;
             return (
-              <tr key={`${r.pickPosition}-${r.element}`}>
+              <tr
+                key={`${r.pickPosition}-${r.element}`}
+                className={dnpFinished ? 'live-pick-row--dnp-finished' : undefined}
+                aria-label={
+                  dnpFinished
+                    ? `${nameDisplay}, did not play (club fixtures finished)`
+                    : undefined
+                }
+              >
                 <td className="live-picks-col-player">
                   <div className="live-player-cell">
                     <KitThumb
