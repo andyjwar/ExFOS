@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
   useLeagueData,
   FORM_LAST_N,
@@ -244,6 +244,13 @@ function App() {
   const [waiverGwTableMode, setWaiverGwTableMode] = useState('out')
   const [dashboardView, setDashboardView] = useState('standings') // standings | playoff | waivers | trades | live
   const [liveGw, setLiveGw] = useState(null)
+  const [fplLiveLandingGw, setFplLiveLandingGw] = useState(null)
+
+  const onBootstrapLiveMeta = useCallback((meta) => {
+    if (meta?.currentGw != null) {
+      setFplLiveLandingGw(Number(meta.currentGw))
+    }
+  }, [])
 
   const waiverOutTeamOptions = useMemo(() => {
     const rows = data?.waiverOutGwRows ?? []
@@ -376,9 +383,9 @@ function App() {
   const selectedFormTeamName =
     teamsForFormSelect.find((t) => t.id === activeFormEntry)?.teamName ?? ''
 
-  /** Live tab: default GW when `liveGw` unset; never pass NaN to FPL fetches. */
+  /** Live tab: user GW → FPL `events.current` from draft bootstrap → schedule fallbacks. */
   const liveGameweek =
-    Number(liveGw ?? previousGameweek ?? nextEvent ?? 1) || 1
+    Number(liveGw ?? fplLiveLandingGw ?? nextEvent ?? previousGameweek ?? 1) || 1
 
   function renderStandingsDataRow(row) {
     const isLeader = row.rank === 1
@@ -1293,6 +1300,7 @@ function App() {
               matches={matches ?? []}
               gameweek={liveGameweek}
               onGameweekChange={setLiveGw}
+              onBootstrapLiveMeta={onBootstrapLiveMeta}
               teamLogoMap={teamLogoMap}
             />
           )}

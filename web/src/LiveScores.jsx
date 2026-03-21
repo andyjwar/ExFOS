@@ -27,6 +27,10 @@ function KitThumb({ shirtUrl, badgeUrl, teamShort }) {
   );
 }
 
+const BONUS_HDR_TITLE =
+  'Bonus: FPL stats.bonus when non-zero; otherwise BPS-based projection — including after full-time until FPL posts the final bonus.';
+const PTS_HDR_TITLE = 'Points include the Bonus column (API total minus API bonus plus displayed bonus).';
+
 function PicksTable({ rows }) {
   if (!rows.length) return <p className="muted muted--tight">No picks</p>;
   return (
@@ -36,6 +40,7 @@ function PicksTable({ rows }) {
           <col className="live-picks-col-player" />
           <col className="live-picks-col-pos" />
           <col className="live-picks-col-num" />
+          <col className="live-picks-col-dc" />
           <col className="live-picks-col-num live-picks-col-pts" />
           <col className="live-picks-col-num" />
         </colgroup>
@@ -50,10 +55,21 @@ function PicksTable({ rows }) {
             <th scope="col" className="live-picks-col-num" title="Minutes">
               Mins
             </th>
-            <th scope="col" className="live-picks-col-num live-picks-col-pts">
+            <th
+              scope="col"
+              className="live-picks-col-dc"
+              title="Defensive contribution: alarm when explain sums to exactly 2 pts (live stat)"
+            >
+              DC
+            </th>
+            <th
+              scope="col"
+              className="live-picks-col-num live-picks-col-pts"
+              title={PTS_HDR_TITLE}
+            >
               Pts
             </th>
-            <th scope="col" className="live-picks-col-num" title="Bonus points (often provisional until final)">
+            <th scope="col" className="live-picks-col-num" title={BONUS_HDR_TITLE}>
               Bonus
             </th>
           </tr>
@@ -80,10 +96,21 @@ function PicksTable({ rows }) {
               </td>
               <td className="live-picks-col-pos tabular">{r.posSingular}</td>
               <td className="live-picks-col-num tabular">{r.minutes}</td>
-              <td className="live-picks-col-num live-picks-col-pts tabular">
+              <td className="live-picks-col-dc tabular" title={r.defensiveContribAlarm ? '2 defensive contribution pts' : ''}>
+                {r.defensiveContribAlarm ? (
+                  <span className="live-dc-alarm" aria-label="Defensive contribution alarm">
+                    !
+                  </span>
+                ) : (
+                  ''
+                )}
+              </td>
+              <td className="live-picks-col-num live-picks-col-pts tabular" title={PTS_HDR_TITLE}>
                 <strong>{r.total_points}</strong>
               </td>
-              <td className="live-picks-col-num tabular">{r.bonus}</td>
+              <td className="live-picks-col-num tabular" title={BONUS_HDR_TITLE}>
+                {r.bonus}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -144,7 +171,7 @@ function SquadLineupPanel({ squad }) {
 }
 
 /**
- * @param {{ teams: Array<{ id: number, teamName: string, fplEntryId: number | null }>, matches?: Array<{ event: number, league_entry_1: number, league_entry_2: number, finished?: boolean, league_entry_1_points?: number, league_entry_2_points?: number }>, gameweek: number, onGameweekChange: (n: number) => void, teamLogoMap: object }}
+ * @param {{ teams: Array<{ id: number, teamName: string, fplEntryId: number | null }>, matches?: Array<{ event: number, league_entry_1: number, league_entry_2: number, finished?: boolean, league_entry_1_points?: number, league_entry_2_points?: number }>, gameweek: number, onGameweekChange: (n: number) => void, onBootstrapLiveMeta?: (m: { currentGw: number | null }) => void, teamLogoMap: object }}
  */
 function proxyHostLabel() {
   const raw = import.meta.env.VITE_FPL_PROXY_URL;
@@ -162,12 +189,20 @@ function isLikelyLocalDev() {
   return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
 }
 
-export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, teamLogoMap }) {
+export function LiveScores({
+  teams,
+  matches = [],
+  gameweek,
+  onGameweekChange,
+  onBootstrapLiveMeta,
+  teamLogoMap,
+}) {
   const { loading, error, refresh, lastUpdated, events, eventSnapshot, squads } =
     useLiveScores({
       teams,
       gameweek,
       enabled: true,
+      onBootstrapLiveMeta,
     });
 
   /** Fixture keys in the set are expanded; default empty = all collapsed. */
@@ -339,16 +374,27 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
               homeLive != null && awayLive != null && homeLive > awayLive;
             const awayLead =
               homeLive != null && awayLive != null && awayLive > homeLive;
+            const homeLeft = Math.max(0, Number(homeSquad?.leftToPlayCount) || 0);
+            const awayLeft = Math.max(0, Number(awaySquad?.leftToPlayCount) || 0);
 
             const fixtureKey = `${homeId}-${awayId}-${gameweek}`;
             const lineupOpen = expandedFixtures.has(fixtureKey);
             const fixtureBodyId = `live-fixture-lineups-${fixtureKey}`;
 
+            const fixtureAria = [
+              `${homeName} versus ${awayName}`,
+              homeLeft || awayLeft
+                ? `${homeLeft} home players left to play, ${awayLeft} away players left to play`
+                : '',
+            ]
+              .filter(Boolean)
+              .join('. ');
+
             return (
               <section
                 key={fixtureKey}
                 className="tile tile--compact live-fixture-tile"
-                aria-label={`${homeName} vs ${awayName}`}
+                aria-label={fixtureAria}
               >
                 <button
                   type="button"
@@ -360,59 +406,72 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
                   <span className="live-fixture-chevron" aria-hidden>
                     {lineupOpen ? '▼' : '▶'}
                   </span>
-                  <span className="live-fixture-banner__row">
-                    <span className="live-fixture-banner__team live-fixture-banner__team--home">
-                      <TeamAvatar
-                        entryId={homeId}
-                        name={homeName}
-                        size="sm"
-                        logoMap={teamLogoMap}
-                      />
-                      <span className="live-fixture-banner__team-text">
-                        <span
-                          className={`live-fixture-banner__name ${homeLead ? 'live-fixture-banner__name--lead' : ''}`}
-                        >
-                          {homeName}
+                  <div className="live-fixture-banner__body">
+                    <div className="live-fixture-banner__grid">
+                      <div className="live-fixture-banner__team live-fixture-banner__team--home">
+                        <TeamAvatar
+                          entryId={homeId}
+                          name={homeName}
+                          size="sm"
+                          logoMap={teamLogoMap}
+                        />
+                        <span className="live-fixture-banner__name-wrap">
+                          <span
+                            className={`live-fixture-banner__name ${homeLead ? 'live-fixture-banner__name--lead' : ''}`}
+                          >
+                            {homeName}
+                          </span>
+                          {homeLeft > 0 ? (
+                            <span className="live-fixture-banner__ltp muted"> ({homeLeft})</span>
+                          ) : null}
                         </span>
-                      </span>
-                    </span>
+                      </div>
 
-                    <span className="live-fixture-banner__scorebox" aria-label="Gameweek points comparison">
-                      {homeLive != null && awayLive != null ? (
-                        <span className="live-fixture-banner__live-score tabular">
-                          <span className={homeLead ? 'live-fixture-pts--lead' : ''}>{homeLive}</span>
-                          <span className="live-fixture-banner__dash">–</span>
-                          <span className={awayLead ? 'live-fixture-pts--lead' : ''}>{awayLive}</span>
-                        </span>
-                      ) : (
-                        <span className="live-fixture-vs">v</span>
-                      )}
-                      <span className="muted live-fixture-banner__score-caption">GW pts (live)</span>
-                    </span>
-
-                    <span className="live-fixture-banner__team live-fixture-banner__team--away">
-                      <span className="live-fixture-banner__team-text live-fixture-banner__team-text--end">
-                        <span
-                          className={`live-fixture-banner__name ${awayLead ? 'live-fixture-banner__name--lead' : ''}`}
-                        >
-                          {awayName}
-                        </span>
+                      <span className="live-fixture-banner__scorebox" aria-label="Gameweek points comparison">
+                        {homeLive != null && awayLive != null ? (
+                          <span className="live-fixture-banner__live-score tabular">
+                            <span className={homeLead ? 'live-fixture-pts--lead' : ''}>{homeLive}</span>
+                            <span className="live-fixture-banner__dash">–</span>
+                            <span className={awayLead ? 'live-fixture-pts--lead' : ''}>{awayLive}</span>
+                          </span>
+                        ) : (
+                          <span className="live-fixture-vs">v</span>
+                        )}
+                        <span className="live-fixture-banner__caption-row muted">GW pts (live)</span>
                       </span>
-                      <TeamAvatar
-                        entryId={awayId}
-                        name={awayName}
-                        size="sm"
-                        logoMap={teamLogoMap}
-                      />
-                    </span>
-                  </span>
+
+                      <div className="live-fixture-banner__team live-fixture-banner__team--away">
+                        <span className="live-fixture-banner__name-wrap live-fixture-banner__name-wrap--end">
+                          <span
+                            className={`live-fixture-banner__name ${awayLead ? 'live-fixture-banner__name--lead' : ''}`}
+                          >
+                            {awayName}
+                          </span>
+                          {awayLeft > 0 ? (
+                            <span className="live-fixture-banner__ltp muted"> ({awayLeft})</span>
+                          ) : null}
+                        </span>
+                        <TeamAvatar
+                          entryId={awayId}
+                          name={awayName}
+                          size="sm"
+                          logoMap={teamLogoMap}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </button>
 
                 {lineupOpen ? (
                 <div className="live-fixture-split" id={fixtureBodyId}>
                   <div className="live-fixture-column">
                     <div className="live-fixture-column-head">
-                      <h3 className="live-fixture-column-title">{homeName}</h3>
+                      <h3 className="live-fixture-column-title">
+                        {homeName}
+                        {homeLeft > 0 ? (
+                          <span className="live-fixture-banner__ltp muted"> ({homeLeft})</span>
+                        ) : null}
+                      </h3>
                       <div className="live-squad-meta tabular">
                         {homeSquad?.gwPoints != null ? (
                           <span className="live-squad-pts">
@@ -429,7 +488,12 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
                   <div className="live-fixture-divider" aria-hidden="true" />
                   <div className="live-fixture-column">
                     <div className="live-fixture-column-head">
-                      <h3 className="live-fixture-column-title">{awayName}</h3>
+                      <h3 className="live-fixture-column-title">
+                        {awayName}
+                        {awayLeft > 0 ? (
+                          <span className="live-fixture-banner__ltp muted"> ({awayLeft})</span>
+                        ) : null}
+                      </h3>
                       <div className="live-squad-meta tabular">
                         {awaySquad?.gwPoints != null ? (
                           <span className="live-squad-pts">
@@ -453,6 +517,11 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
               key={squad.leagueEntryId}
               className="tile tile--compact live-squad-tile"
               aria-labelledby={`live-squad-${squad.leagueEntryId}`}
+              aria-label={
+                squad.leftToPlayCount > 0
+                  ? `${squad.teamName}, ${squad.leftToPlayCount} players left to play`
+                  : squad.teamName
+              }
             >
               <div className="live-squad-head">
                 <h3
@@ -470,7 +539,12 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
                     size="sm"
                     logoMap={teamLogoMap}
                   />
-                  <span>{squad.teamName}</span>
+                  <span>
+                    {squad.teamName}
+                    {squad.leftToPlayCount > 0 ? (
+                      <span className="live-fixture-banner__ltp muted"> ({squad.leftToPlayCount})</span>
+                    ) : null}
+                  </span>
                 </h3>
                 <div className="live-squad-meta tabular">
                   {squad.gwPoints != null ? (
@@ -493,6 +567,11 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
               key={`orphan-${squad.leagueEntryId}`}
               className="tile tile--compact live-squad-tile live-squad-tile--orphan"
               aria-labelledby={`live-squad-o-${squad.leagueEntryId}`}
+              aria-label={
+                squad.leftToPlayCount > 0
+                  ? `${squad.teamName}, ${squad.leftToPlayCount} players left to play, no H2H pairing this GW`
+                  : `${squad.teamName}, no H2H pairing this GW`
+              }
             >
               <p className="muted muted--tight live-orphan-note">
                 No H2H pairing in schedule for this GW — showing squad only.
@@ -513,7 +592,12 @@ export function LiveScores({ teams, matches = [], gameweek, onGameweekChange, te
                     size="sm"
                     logoMap={teamLogoMap}
                   />
-                  <span>{squad.teamName}</span>
+                  <span>
+                    {squad.teamName}
+                    {squad.leftToPlayCount > 0 ? (
+                      <span className="live-fixture-banner__ltp muted"> ({squad.leftToPlayCount})</span>
+                    ) : null}
+                  </span>
                 </h3>
                 <div className="live-squad-meta tabular">
                   {squad.gwPoints != null ? (

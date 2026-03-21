@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  computeProvisionalGwBonusByElementId,
+  selectDisplayBonus,
+  hasTwoDefensiveContributionPoints,
+} from './fplBonusFromBps.js';
 
 /** Classic host — only used when resolving `fplApiBase()` with no proxy / non-dev. */
 const FPL_DIRECT = 'https://fantasy.premierleague.com/api';
@@ -10,7 +15,7 @@ const DRAFT_DIRECT = 'https://draft.premierleague.com/api';
  * - **Production / preview:** `VITE_FPL_PROXY_URL` = Cloudflare Worker (must support `/draft/*`).
  * - **`npm run dev`:** if that env is **unset or empty**, use same-origin `/__fpl/*` (Vite proxy in vite.config.js).
  */
-function fplApiBase() {
+export function fplApiBase() {
   const raw = import.meta.env.VITE_FPL_PROXY_URL;
   const trimmed = raw != null ? String(raw).trim() : '';
   if (trimmed !== '') {
@@ -26,7 +31,7 @@ function fplApiBase() {
  * Resource path under draft.premierleague.com/api — no leading slash.
  * Draft `event/{gw}/live` 404s with a trailing slash; classic does not.
  */
-function draftResourceUrl(path) {
+export function draftResourceUrl(path) {
   const p = String(path).replace(/^\/+/, '');
   const base = fplApiBase();
   if (base !== FPL_DIRECT) {
@@ -36,6 +41,19 @@ function draftResourceUrl(path) {
     return `/__fpl/draft/${p}`;
   }
   return `${DRAFT_DIRECT}/${p}`;
+}
+
+/** Classic fantasy.premierleague.com/api paths (fixtures, bootstrap-static, …). */
+export function classicResourceUrl(path) {
+  const p = String(path).replace(/^\/+/, '');
+  const base = fplApiBase();
+  if (base !== FPL_DIRECT) {
+    return `${base}/${p}`;
+  }
+  if (import.meta.env.DEV) {
+    return `/__fpl/${p}`;
+  }
+  return `${FPL_DIRECT}/${p}`;
 }
 
 /**
@@ -59,7 +77,7 @@ function bootstrapEventList(boot) {
 }
 
 /** Draft `event/{gw}/live` returns `elements` as an id → { stats } map. */
-function liveStatsByElementId(draftLiveJson) {
+export function liveStatsByElementId(draftLiveJson) {
   const raw = draftLiveJson?.elements;
   const out = {};
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
@@ -75,6 +93,28 @@ function liveStatsByElementId(draftLiveJson) {
       const id = Number(row.id);
       if (!Number.isFinite(id)) continue;
       out[id] = row.stats || {};
+    }
+  }
+  return out;
+}
+
+/** Full live row per element (includes `explain`). */
+export function liveFullByElementId(draftLiveJson) {
+  const raw = draftLiveJson?.elements;
+  const out = {};
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    for (const [k, v] of Object.entries(raw)) {
+      const id = Number(k);
+      if (!Number.isFinite(id)) continue;
+      out[id] = v && typeof v === 'object' ? v : {};
+    }
+    return out;
+  }
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      const id = Number(row.id);
+      if (!Number.isFinite(id)) continue;
+      out[id] = row;
     }
   }
   return out;
@@ -99,18 +139,37 @@ function displayPlayerName(el, elementId) {
   return el.web_name ?? `Player #${elementId}`;
 }
 
-function mapPickRows(picks, liveByElementId, elementById, teamById, typeById) {
+/**
+ * @param {object[]} picks
+ * @param {Record<number, object>} liveByElementId stats only
+ * @param {Record<number, object>} liveFullByElementId full rows (explain / defensive alarm)
+ * @param {Record<number, number>} provisionalBonusByElement
+ */
+export function mapPickRows(
+  picks,
+  liveByElementId,
+  liveFullByElementId,
+  elementById,
+  teamById,
+  typeById,
+  provisionalBonusByElement,
+) {
   const rows = (picks || []).map((p) => {
     const pid = Number(p.element);
     const el = elementById[pid];
     const tm = el ? teamById[el.team] : null;
     const typ = el ? typeById[el.element_type] : null;
     const st = liveByElementId[pid] || {};
+    const fullRow = liveFullByElementId[pid] || {};
     const mins = st.minutes ?? 0;
-    const pts = st.total_points ?? 0;
+    const apiPts = st.total_points ?? 0;
     const bps = st.bps ?? 0;
-    const bonus = st.bonus ?? 0;
+    const bonusApi = st.bonus ?? 0;
     const webName = el?.web_name ?? `Player #${pid}`;
+    const provisional = Number(provisionalBonusByElement?.[pid]) || 0;
+    const displayBonus = selectDisplayBonus(bonusApi, provisional);
+    const total_points = Number(apiPts) - Number(bonusApi) + Number(displayBonus);
+
     return {
       element: pid,
       web_name: webName,
@@ -121,9 +180,13 @@ function mapPickRows(picks, liveByElementId, elementById, teamById, typeById) {
       shirtUrl: shirtUrl(el?.team),
       badgeUrl: badgeUrl(tm?.code),
       minutes: mins,
-      total_points: pts,
+      total_points,
+      api_total_points: apiPts,
       bps,
-      bonus,
+      bonus: displayBonus,
+      bonusApi,
+      provisionalBonus: provisional,
+      defensiveContribAlarm: hasTwoDefensiveContributionPoints(fullRow),
       pickPosition: p.position,
     };
   });
@@ -131,22 +194,58 @@ function mapPickRows(picks, liveByElementId, elementById, teamById, typeById) {
   return rows;
 }
 
+export function applyBonusColumn(row, provisionalBonusByElement) {
+  const pid = Number(row.element);
+  const bonusApi = Number(row.bonusApi) || 0;
+  const apiPts = Number(row.api_total_points ?? row.total_points) || 0;
+  const provisional = Number(provisionalBonusByElement?.[pid]) || 0;
+  const displayBonus = selectDisplayBonus(bonusApi, provisional);
+  return {
+    ...row,
+    bonus: displayBonus,
+    provisionalBonus: provisional,
+    total_points: apiPts - bonusApi + displayBonus,
+  };
+}
+
+/** XI starters with 0 mins whose club still has a fixture not finished_provisional in this GW. */
+export function countStartersLeftToPlay(starters, elementById, classicFixtures) {
+  const unfinishedTeams = new Set();
+  for (const fx of classicFixtures || []) {
+    if (fx.finished_provisional === true) continue;
+    unfinishedTeams.add(Number(fx.team_h));
+    unfinishedTeams.add(Number(fx.team_a));
+  }
+  let n = 0;
+  for (const r of starters) {
+    if (Number(r.minutes) !== 0) continue;
+    const el = elementById[r.element];
+    if (!el) continue;
+    const tid = Number(el.team);
+    if (unfinishedTeams.has(tid)) n += 1;
+  }
+  return n;
+}
+
 /**
- * Live GW data from **draft** FPL APIs (browser fetch).
- * Uses draft bootstrap + draft event/live so element IDs match draft picks (classic uses a different id→player map).
- * @param {{ teams: Array<{ id: number, teamName: string, fplEntryId: number | null }>, gameweek: number | null, enabled: boolean }} opts
+ * Live GW data from **draft** FPL APIs + classic fixtures for BPS pools / finished flags.
+ * @param {{ teams: Array<{ id: number, teamName: string, fplEntryId: number | null }>, gameweek: number | null, enabled: boolean, onBootstrapLiveMeta?: (m: { currentGw: number | null }) => void }} opts
  */
-export function useLiveScores({ teams, gameweek, enabled }) {
+export function useLiveScores({ teams, gameweek, enabled, onBootstrapLiveMeta }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [events, setEvents] = useState([]);
   const [eventSnapshot, setEventSnapshot] = useState(null);
   const [squads, setSquads] = useState([]);
+  const [classicFixtures, setClassicFixtures] = useState([]);
 
   /** Parent passes a new `teams` array each render; ref avoids infinite load loops. */
   const teamsRef = useRef(teams);
   teamsRef.current = teams;
+
+  const bootstrapMetaRef = useRef(onBootstrapLiveMeta);
+  bootstrapMetaRef.current = onBootstrapLiveMeta;
 
   /** When this goes 0 → N, we must re-fetch (load is not tied to `teams` by reference). */
   const teamCount = teams?.length ?? 0;
@@ -168,7 +267,7 @@ export function useLiveScores({ teams, gameweek, enabled }) {
       const boot = await bootRes.json();
       const evRoot = boot.events;
       const evList = bootstrapEventList(boot);
-      const currentGw = evRoot?.current;
+      const currentGw = evRoot?.current ?? null;
       const nextGw = evRoot?.next;
       const evs = evList.map((e) => ({
         ...e,
@@ -179,14 +278,14 @@ export function useLiveScores({ teams, gameweek, enabled }) {
       const ev = evs.find((e) => e.id === gw);
       setEventSnapshot(ev ?? { id: gw, name: `Gameweek ${gw}` });
 
+      bootstrapMetaRef.current?.({ currentGw: currentGw != null ? Number(currentGw) : null });
+
       const elementById = Object.fromEntries(
-        (boot.elements || []).map((e) => [Number(e.id), e])
+        (boot.elements || []).map((e) => [Number(e.id), e]),
       );
-      const teamById = Object.fromEntries(
-        (boot.teams || []).map((t) => [Number(t.id), t])
-      );
+      const teamById = Object.fromEntries((boot.teams || []).map((t) => [Number(t.id), t]));
       const typeById = Object.fromEntries(
-        (boot.element_types || []).map((t) => [Number(t.id), t])
+        (boot.element_types || []).map((t) => [Number(t.id), t]),
       );
 
       const liveUrl = draftResourceUrl(`event/${gw}/live`);
@@ -196,6 +295,22 @@ export function useLiveScores({ teams, gameweek, enabled }) {
       }
       const liveJson = await liveRes.json();
       const liveByElementId = liveStatsByElementId(liveJson);
+      const liveFullMap = liveFullByElementId(liveJson);
+
+      const fxUrl = classicResourceUrl(`fixtures/?event=${gw}`);
+      const fxRes = await fetch(fxUrl);
+      if (!fxRes.ok) {
+        throw new Error(`classic fixtures HTTP ${fxRes.status}`);
+      }
+      const fxJson = await fxRes.json();
+      const fxList = Array.isArray(fxJson) ? fxJson : fxJson?.fixtures ?? [];
+      setClassicFixtures(fxList);
+
+      const provisionalBonusByElement = computeProvisionalGwBonusByElementId(
+        fxList,
+        liveFullMap,
+        elementById,
+      );
 
       const squadList = await Promise.all(
         teamList.map(async (t) => {
@@ -209,7 +324,9 @@ export function useLiveScores({ teams, gameweek, enabled }) {
               starters: [],
               bench: [],
               gwPoints: null,
+              pointsOnBench: null,
               autoSubs: [],
+              leftToPlayCount: 0,
             };
           }
 
@@ -224,7 +341,9 @@ export function useLiveScores({ teams, gameweek, enabled }) {
               starters: [],
               bench: [],
               gwPoints: null,
+              pointsOnBench: null,
               autoSubs: [],
+              leftToPlayCount: 0,
             };
           }
           const picksPayload = await pr.json();
@@ -232,22 +351,25 @@ export function useLiveScores({ teams, gameweek, enabled }) {
           const rows = mapPickRows(
             picks,
             liveByElementId,
+            liveFullMap,
             elementById,
             teamById,
-            typeById
+            typeById,
+            provisionalBonusByElement,
           );
           const starters = rows.filter((r) => r.pickPosition <= 11);
           const bench = rows.filter((r) => r.pickPosition > 11);
 
           const eh = picksPayload.entry_history;
-          const gwPoints =
-            eh && typeof eh.points === 'number' ? eh.points : null;
           const pointsOnBench =
-            eh && typeof eh.points_on_bench === 'number'
-              ? eh.points_on_bench
-              : null;
-          const autoSubs =
-            picksPayload.automatic_subs ?? picksPayload.subs ?? [];
+            eh && typeof eh.points_on_bench === 'number' ? eh.points_on_bench : null;
+          const autoSubs = picksPayload.automatic_subs ?? picksPayload.subs ?? [];
+
+          const sumXi = starters.reduce((s, r) => s + (Number(r.total_points) || 0), 0);
+          /** Align banner with Pts column (bonus-adjusted), not raw entry_history. */
+          const gwPoints = sumXi;
+
+          const leftToPlayCount = countStartersLeftToPlay(starters, elementById, fxList);
 
           return {
             leagueEntryId: t.id,
@@ -259,8 +381,9 @@ export function useLiveScores({ teams, gameweek, enabled }) {
             gwPoints,
             pointsOnBench,
             autoSubs,
+            leftToPlayCount,
           };
-        })
+        }),
       );
 
       setSquads(squadList);
@@ -268,10 +391,11 @@ export function useLiveScores({ teams, gameweek, enabled }) {
     } catch (e) {
       setError(e?.message || String(e));
       setSquads([]);
+      setClassicFixtures([]);
     } finally {
       setLoading(false);
     }
-  }, [enabled, gameweek, teamCount]);
+  }, [enabled, gameweek]);
 
   useEffect(() => {
     if (
@@ -292,5 +416,6 @@ export function useLiveScores({ teams, gameweek, enabled }) {
     events,
     eventSnapshot,
     squads,
+    classicFixtures,
   };
 }
