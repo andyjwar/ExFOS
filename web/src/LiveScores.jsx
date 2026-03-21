@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useSyncExternalStore } from 'react';
 import { TeamAvatar } from './TeamAvatar';
 import { useLiveScores } from './useLiveScores';
 
@@ -31,18 +31,68 @@ const BONUS_HDR_TITLE =
   'Bonus: FPL stats.bonus when non-zero; otherwise BPS-based projection — including after full-time until FPL posts the final bonus.';
 const PTS_HDR_TITLE = 'Points include the Bonus column (API total minus API bonus plus displayed bonus).';
 
-function PicksTable({ rows }) {
+function usePortraitLineupLayout() {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === 'undefined') return () => {};
+      const mq = window.matchMedia('(max-width: 560px) and (orientation: portrait)');
+      mq.addEventListener('change', onStoreChange);
+      return () => mq.removeEventListener('change', onStoreChange);
+    },
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 560px) and (orientation: portrait)').matches,
+    () => false,
+  );
+}
+
+/** First + last name when more than two words (portrait lineup). */
+function shortLineupName(fullName) {
+  const parts = String(fullName ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length <= 2) return fullName;
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+function livePickMinsCellClass(mins, clubGwFixturesFinished) {
+  const m = Number(mins) || 0;
+  if (m >= 60) return 'live-pick-cell--green';
+  if (m === 0 && clubGwFixturesFinished) return 'live-pick-cell--red';
+  if (m >= 2 && m <= 59) return 'live-pick-cell--yellow';
+  return '';
+}
+
+/** GK/DEF: ≥10 DC pts; MID/FWD: ≥12 (FPL element types 1–4). */
+function livePickDcGreenClass(elementTypeId, dcPoints) {
+  const d = Number(dcPoints) || 0;
+  const t = Number(elementTypeId);
+  const thr = t === 3 || t === 4 ? 12 : 10;
+  return d >= thr ? 'live-pick-cell--green' : '';
+}
+
+function livePickPositiveClass(n) {
+  return Number(n) > 0 ? 'live-pick-cell--green' : '';
+}
+
+function PicksTable({ rows, portraitLineup }) {
   if (!rows.length) return <p className="muted muted--tight">No picks</p>;
   return (
-    <div className="table-scroll">
+    <div
+      className={`table-scroll${portraitLineup ? ' live-picks-table-wrap--lineup-portrait' : ''}`}
+    >
       <table className="live-picks-table">
         <colgroup>
           <col className="live-picks-col-player" />
           <col className="live-picks-col-pos" />
-          <col className="live-picks-col-num" />
+          <col className="live-picks-col-num live-picks-col-mins" />
           <col className="live-picks-col-dc" />
+          <col className="live-picks-col-num live-picks-col-goals" />
+          <col className="live-picks-col-num live-picks-col-assists" />
+          <col className="live-picks-col-num live-picks-col-bonus" />
+          <col className="live-picks-col-alarm" />
           <col className="live-picks-col-num live-picks-col-pts" />
-          <col className="live-picks-col-num" />
         </colgroup>
         <thead>
           <tr>
@@ -52,67 +102,114 @@ function PicksTable({ rows }) {
             <th scope="col" className="live-picks-col-pos">
               Pos
             </th>
-            <th scope="col" className="live-picks-col-num" title="Minutes">
+            <th scope="col" className="live-picks-col-num live-picks-col-mins" title="Minutes">
               Mins
             </th>
             <th
               scope="col"
               className="live-picks-col-dc"
-              title="Defensive contribution: alarm when explain sums to exactly 2 pts (live stat)"
+              title="Defensive contribution points (sum from live explain)"
             >
               DC
             </th>
+            <th scope="col" className="live-picks-col-num live-picks-col-goals" title="Goals">
+              ⚽
+            </th>
+            <th scope="col" className="live-picks-col-num live-picks-col-assists" title="Assists">
+              🍑
+            </th>
+            <th scope="col" className="live-picks-col-num live-picks-col-bonus" title={BONUS_HDR_TITLE}>
+              Bonus
+            </th>
+            <th scope="col" className="live-picks-col-alarm" aria-label="Alerts" />
             <th
               scope="col"
-              className="live-picks-col-num live-picks-col-pts"
+              className="live-picks-col-num live-picks-col-pts live-picks-col-pts--section"
               title={PTS_HDR_TITLE}
             >
               Pts
             </th>
-            <th scope="col" className="live-picks-col-num" title={BONUS_HDR_TITLE}>
-              Bonus
-            </th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.pickPosition}-${r.element}`}>
-              <td className="live-picks-col-player">
-                <div className="live-player-cell">
-                  <KitThumb
-                    shirtUrl={r.shirtUrl}
-                    badgeUrl={r.badgeUrl}
-                    teamShort={r.teamShort}
-                  />
-                  <div className="live-player-text">
-                    <div
-                      className="live-player-name"
-                      title={`${r.web_name} · #${r.element}${r.teamName ? ` · ${r.teamName}` : ''}`}
-                    >
-                      {r.displayName ?? r.web_name}
+          {rows.map((r) => {
+            const nameDisplay =
+              portraitLineup && r.displayName
+                ? shortLineupName(r.displayName)
+                : (r.displayName ?? r.web_name);
+            const fullTitle = `${r.web_name} · #${r.element}${r.teamName ? ` · ${r.teamName}` : ''}`;
+            return (
+              <tr key={`${r.pickPosition}-${r.element}`}>
+                <td className="live-picks-col-player">
+                  <div className="live-player-cell">
+                    <KitThumb
+                      shirtUrl={r.shirtUrl}
+                      badgeUrl={r.badgeUrl}
+                      teamShort={r.teamShort}
+                    />
+                    <div className="live-player-text">
+                      <div className="live-player-name" title={fullTitle}>
+                        <span className="live-player-name__text">{nameDisplay}</span>
+                        {r.injuryFlagged ? (
+                          <span
+                            className="live-player-injury"
+                            title={r.injuryTooltip || 'Injury / availability'}
+                            aria-label={r.injuryTooltip || 'Player flagged injured or doubtful'}
+                            role="img"
+                          >
+                            🚑
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </td>
-              <td className="live-picks-col-pos tabular">{r.posSingular}</td>
-              <td className="live-picks-col-num tabular">{r.minutes}</td>
-              <td className="live-picks-col-dc tabular" title={r.defensiveContribAlarm ? '2 defensive contribution pts' : ''}>
-                {r.defensiveContribAlarm ? (
-                  <span className="live-dc-alarm" aria-label="Defensive contribution alarm">
-                    !
-                  </span>
-                ) : (
-                  ''
-                )}
-              </td>
-              <td className="live-picks-col-num live-picks-col-pts tabular" title={PTS_HDR_TITLE}>
-                <strong>{r.total_points}</strong>
-              </td>
-              <td className="live-picks-col-num tabular" title={BONUS_HDR_TITLE}>
-                {r.bonus}
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="live-picks-col-pos tabular">{r.posSingular}</td>
+                <td
+                  className={`live-picks-col-num live-picks-col-mins tabular ${livePickMinsCellClass(r.minutes, r.clubGwFixturesFinished)}`}
+                >
+                  {r.minutes}
+                </td>
+                <td
+                  className={`live-picks-col-dc tabular ${livePickDcGreenClass(r.elementTypeId, r.defensiveContributionPoints)}`}
+                  title={
+                    r.defensiveContribAlarm ? '2 defensive contribution pts (alarm threshold)' : ''
+                  }
+                >
+                  {r.defensiveContributionPoints}
+                </td>
+                <td
+                  className={`live-picks-col-num live-picks-col-goals tabular ${livePickPositiveClass(r.goals_scored)}`}
+                >
+                  {r.goals_scored}
+                </td>
+                <td
+                  className={`live-picks-col-num live-picks-col-assists tabular ${livePickPositiveClass(r.assists)}`}
+                >
+                  {r.assists}
+                </td>
+                <td
+                  className={`live-picks-col-num live-picks-col-bonus tabular ${livePickPositiveClass(r.bonus)}`}
+                  title={BONUS_HDR_TITLE}
+                >
+                  {r.bonus}
+                </td>
+                <td className="live-picks-col-alarm tabular">
+                  {r.defensiveContribAlarm ? (
+                    <span className="live-dc-alarm" aria-label="Defensive contribution alarm">
+                      !
+                    </span>
+                  ) : null}
+                </td>
+                <td
+                  className="live-picks-col-num live-picks-col-pts live-picks-col-pts--section tabular"
+                  title={PTS_HDR_TITLE}
+                >
+                  <strong>{r.total_points}</strong>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -135,8 +232,8 @@ function teamNameForEntry(teams, leagueEntryId) {
   return teams?.find((t) => t.id === leagueEntryId)?.teamName ?? `Team ${leagueEntryId}`;
 }
 
-/** @param {{ squad: object }} */
-function SquadLineupPanel({ squad }) {
+/** @param {{ squad: object, portraitLineup: boolean }} */
+function SquadLineupPanel({ squad, portraitLineup }) {
   if (!squad) {
     return <p className="muted muted--tight">No squad data for this team.</p>;
   }
@@ -163,9 +260,9 @@ function SquadLineupPanel({ squad }) {
         </div>
       ) : null}
       <h4 className="live-lineup-heading">Starting XI</h4>
-      <PicksTable rows={squad.starters} />
+      <PicksTable rows={squad.starters} portraitLineup={portraitLineup} />
       <h4 className="live-lineup-heading live-lineup-heading--bench">Bench</h4>
-      <PicksTable rows={squad.bench} />
+      <PicksTable rows={squad.bench} portraitLineup={portraitLineup} />
     </>
   );
 }
@@ -197,6 +294,8 @@ export function LiveScores({
   onBootstrapLiveMeta,
   teamLogoMap,
 }) {
+  const portraitLineup = usePortraitLineupLayout();
+
   const { loading, error, refresh, lastUpdated, events, eventSnapshot, squads } =
     useLiveScores({
       teams,
@@ -257,7 +356,7 @@ export function LiveScores({
 
   const orphanSquads = useMemo(
     () => squads.filter((q) => !pairedLeagueEntryIds.has(q.leagueEntryId)),
-    [squads, pairedLeagueEntryIds]
+    [squads, pairedLeagueEntryIds],
   );
 
   const useFixtureLayout = gwMatches.length > 0;
@@ -483,7 +582,7 @@ export function LiveScores({
                         ) : null}
                       </div>
                     </div>
-                    <SquadLineupPanel squad={homeSquad} />
+                    <SquadLineupPanel squad={homeSquad} portraitLineup={portraitLineup} />
                   </div>
                   <div className="live-fixture-divider" aria-hidden="true" />
                   <div className="live-fixture-column">
@@ -505,7 +604,7 @@ export function LiveScores({
                         ) : null}
                       </div>
                     </div>
-                    <SquadLineupPanel squad={awaySquad} />
+                    <SquadLineupPanel squad={awaySquad} portraitLineup={portraitLineup} />
                   </div>
                 </div>
                 ) : null}
@@ -557,7 +656,7 @@ export function LiveScores({
                   ) : null}
                 </div>
               </div>
-              <SquadLineupPanel squad={squad} />
+              <SquadLineupPanel squad={squad} portraitLineup={portraitLineup} />
             </section>
           ))}
 
@@ -607,7 +706,7 @@ export function LiveScores({
                   ) : null}
                 </div>
               </div>
-              <SquadLineupPanel squad={squad} />
+              <SquadLineupPanel squad={squad} portraitLineup={portraitLineup} />
             </section>
           ))
         : null}

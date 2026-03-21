@@ -3,6 +3,7 @@ import {
   computeProvisionalGwBonusByElementId,
   selectDisplayBonus,
   hasTwoDefensiveContributionPoints,
+  defensiveContributionPointsFromLiveRow,
 } from './fplBonusFromBps.js';
 
 /** Classic host — only used when resolving `fplApiBase()` with no proxy / non-dev. */
@@ -76,6 +77,17 @@ function bootstrapEventList(boot) {
   return [];
 }
 
+/** True when every classic fixture involving `teamId` this GW has `finished_provisional`. */
+export function teamGwFixturesAllFinished(teamId, classicFixtures) {
+  const tid = Number(teamId);
+  if (!Number.isFinite(tid)) return false;
+  const relevant = (classicFixtures || []).filter(
+    (f) => Number(f.team_h) === tid || Number(f.team_a) === tid,
+  );
+  if (relevant.length === 0) return false;
+  return relevant.every((f) => f.finished_provisional === true);
+}
+
 /** Draft `event/{gw}/live` returns `elements` as an id → { stats } map. */
 export function liveStatsByElementId(draftLiveJson) {
   const raw = draftLiveJson?.elements;
@@ -139,11 +151,28 @@ function displayPlayerName(el, elementId) {
   return el.web_name ?? `Player #${elementId}`;
 }
 
+/** FPL `elements[].status`: i = injured, d = doubtful — both count as injury flags in the UI. */
+function injuryFlagFromElement(el) {
+  if (!el) return false;
+  const s = el.status;
+  return s === 'i' || s === 'd';
+}
+
+function injuryTooltipFromElement(el) {
+  if (!el) return '';
+  const n = typeof el.news === 'string' ? el.news.trim() : '';
+  if (n) return n;
+  if (el.status === 'i') return 'Injured';
+  if (el.status === 'd') return 'Doubtful';
+  return '';
+}
+
 /**
  * @param {object[]} picks
  * @param {Record<number, object>} liveByElementId stats only
  * @param {Record<number, object>} liveFullByElementId full rows (explain / defensive alarm)
  * @param {Record<number, number>} provisionalBonusByElement
+ * @param {object[]} classicFixtures classic FPL fixtures for this GW (finished flags)
  */
 export function mapPickRows(
   picks,
@@ -153,6 +182,7 @@ export function mapPickRows(
   teamById,
   typeById,
   provisionalBonusByElement,
+  classicFixtures,
 ) {
   const rows = (picks || []).map((p) => {
     const pid = Number(p.element);
@@ -169,6 +199,15 @@ export function mapPickRows(
     const provisional = Number(provisionalBonusByElement?.[pid]) || 0;
     const displayBonus = selectDisplayBonus(bonusApi, provisional);
     const total_points = Number(apiPts) - Number(bonusApi) + Number(displayBonus);
+    const goals_scored = Number(st.goals_scored) || 0;
+    const assists = Number(st.assists) || 0;
+    const defensiveContributionPoints = defensiveContributionPointsFromLiveRow(fullRow);
+    const elementTypeId = el != null ? Number(el.element_type) : null;
+    const clubId = el != null ? Number(el.team) : null;
+    const clubGwFixturesFinished =
+      clubId != null && Number.isFinite(clubId)
+        ? teamGwFixturesAllFinished(clubId, classicFixtures)
+        : false;
 
     return {
       element: pid,
@@ -177,9 +216,13 @@ export function mapPickRows(
       teamShort: tm?.short_name ?? '—',
       teamName: tm?.name ?? null,
       posSingular: typ?.singular_name_short ?? '—',
+      elementTypeId,
       shirtUrl: shirtUrl(el?.team),
       badgeUrl: badgeUrl(tm?.code),
       minutes: mins,
+      goals_scored,
+      assists,
+      defensiveContributionPoints,
       total_points,
       api_total_points: apiPts,
       bps,
@@ -187,6 +230,9 @@ export function mapPickRows(
       bonusApi,
       provisionalBonus: provisional,
       defensiveContribAlarm: hasTwoDefensiveContributionPoints(fullRow),
+      clubGwFixturesFinished,
+      injuryFlagged: injuryFlagFromElement(el),
+      injuryTooltip: injuryTooltipFromElement(el),
       pickPosition: p.position,
     };
   });
@@ -356,6 +402,7 @@ export function useLiveScores({ teams, gameweek, enabled, onBootstrapLiveMeta })
             teamById,
             typeById,
             provisionalBonusByElement,
+            fxList,
           );
           const starters = rows.filter((r) => r.pickPosition <= 11);
           const bench = rows.filter((r) => r.pickPosition > 11);

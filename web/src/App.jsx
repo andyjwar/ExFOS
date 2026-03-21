@@ -11,17 +11,20 @@ import './App.css'
 
 const LEAGUE_TITLE = 'The Mostly Ex-FOS Championship'
 const LEAGUE_SEASON_SUB = '2025/26'
+/** Only this team keeps an avatar in the standings table (team column). */
+const STANDINGS_TABLE_AVATAR_TEAM = 'Martinelli is scum'
 
 function FormCircles({ form }) {
   return (
     <div className="form-circles" aria-label="Last matches form">
       {form.map((r, i) =>
         r == null ? (
-          <span key={i} className="form-dot form-dot--empty" title="—" />
+          <span key={i} className="form-dot form-dot--empty" data-tooltip="—" title="—" />
         ) : (
           <span
             key={i}
             className={`form-dot form-dot--${r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw'}`}
+            data-tooltip={r === 'W' ? 'Win' : r === 'L' ? 'Loss' : 'Draw'}
             title={r === 'W' ? 'Win' : r === 'L' ? 'Loss' : 'Draw'}
           >
             {r}
@@ -392,6 +395,7 @@ function App() {
     const rowClass = [
       isLeader ? 'row-highlight' : '',
       row.rank === 1 ? 'standings-row--divider-below' : '',
+      row.rank === 8 ? 'standings-row--8th' : '',
     ]
       .filter(Boolean)
       .join(' ')
@@ -400,28 +404,30 @@ function App() {
         <td className="col-rank">{row.rank}</td>
         <td className="col-team">
           <span className="team-cell">
-            <TeamAvatar entryId={row.league_entry} name={row.teamName} size="sm" logoMap={teamLogoMap} />
+            {row.teamName === STANDINGS_TABLE_AVATAR_TEAM ? (
+              <TeamAvatar entryId={row.league_entry} name={row.teamName} size="sm" logoMap={teamLogoMap} />
+            ) : null}
             <span className="team-name team-name--sidebar">{row.teamName}</span>
           </span>
         </td>
         <td className="col-num">{row.pl}</td>
-        <td className="col-num">{row.matches_won}</td>
-        <td className="col-num">{row.matches_drawn}</td>
-        <td className="col-num">{row.matches_lost}</td>
+        <td className="col-num col-hide-portrait">{row.matches_won}</td>
+        <td className="col-num col-hide-portrait">{row.matches_drawn}</td>
+        <td className="col-num col-hide-portrait">{row.matches_lost}</td>
         <td className="col-num col-for tabular" title="Your points for, all GWs">
           {row.gf}
         </td>
-        <td className="col-num col-faced tabular" title="Opponent points faced, all GWs">
+        <td className="col-num col-faced tabular col-hide-portrait" title="Opponent points faced, all GWs">
           {row.ga}
         </td>
-        <td className="col-num tabular">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+        <td className="col-num tabular col-hide-portrait">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
         <td className="col-num col-pts">
           <strong>{row.total}</strong>
         </td>
-        <td className="col-form">
+        <td className="col-form col-hide-portrait">
           <FormCircles form={row.form} />
         </td>
-        <td className="col-next">
+        <td className="col-next col-hide-portrait">
           {row.next ? (
             <TeamAvatar entryId={row.next.id} name={row.next.name} size="sm" logoMap={teamLogoMap} />
           ) : (
@@ -432,43 +438,59 @@ function App() {
     )
   }
 
-  const renderGwFixture = (fx, i) => (
-    <li key={`${fx.event}-${fx.homeId}-${fx.awayId}-${i}`} className="gw-fixture-row">
-      <div className="gw-fixture-teams">
-        <span className="gw-fixture-side">
-          <TeamAvatar entryId={fx.homeId} name={fx.homeName} size="sm" logoMap={teamLogoMap} />
-          <span className={fx.homePts > fx.awayPts ? 'fw-600' : ''}>{fx.homeName}</span>
-        </span>
-        {fx.homePts != null ? (
-          <span className="gw-fixture-score">
-            {fx.homePts} – {fx.awayPts}
+  const renderGwFixture = (fx, i) => {
+    const hasScore = fx.homePts != null && fx.awayPts != null
+    const isDraw = hasScore && fx.homePts === fx.awayPts
+    const homeWin = hasScore && fx.homePts > fx.awayPts
+    const awayWin = hasScore && fx.awayPts > fx.homePts
+    const homeNameClass =
+      isDraw ? 'gw-fixture-team--draw' : homeWin ? 'gw-fixture-team--win' : ''
+    const awayNameClass =
+      isDraw ? 'gw-fixture-team--draw' : awayWin ? 'gw-fixture-team--win' : ''
+    const scoreClass =
+      hasScore && isDraw ? 'gw-fixture-score gw-fixture-score--draw' : 'gw-fixture-score'
+    const homeTeamNameClass = ['team-name', 'team-name--standings', homeNameClass].filter(Boolean).join(' ')
+    const awayTeamNameClass = ['team-name', 'team-name--standings', awayNameClass].filter(Boolean).join(' ')
+    return (
+      <li key={`${fx.event}-${fx.homeId}-${fx.awayId}-${i}`} className="gw-fixture-row">
+        <div className="gw-fixture-teams">
+          <span className="gw-fixture-side">
+            <TeamAvatar entryId={fx.homeId} name={fx.homeName} size="sm" logoMap={teamLogoMap} />
+            <span className={homeTeamNameClass}>{fx.homeName}</span>
           </span>
-        ) : (
-          <span className="gw-fixture-vs">v</span>
-        )}
-        <span className="gw-fixture-side gw-fixture-side--end">
-          <span className={fx.awayPts != null && fx.awayPts > fx.homePts ? 'fw-600' : ''}>{fx.awayName}</span>
-          <TeamAvatar entryId={fx.awayId} name={fx.awayName} size="sm" logoMap={teamLogoMap} />
-        </span>
-      </div>
-    </li>
-  )
+          {fx.homePts != null ? (
+            <span className={scoreClass}>
+              {fx.homePts} – {fx.awayPts}
+            </span>
+          ) : (
+            <span className="gw-fixture-vs">v</span>
+          )}
+          <span className="gw-fixture-side gw-fixture-side--end">
+            <span className={awayTeamNameClass}>{fx.awayName}</span>
+            <TeamAvatar entryId={fx.awayId} name={fx.awayName} size="sm" logoMap={teamLogoMap} />
+          </span>
+        </div>
+      </li>
+    )
+  }
 
   return (
     <div className="app fotmob">
       <main className="dashboard-layout dashboard-layout--with-nav">
         <div className="dashboard-page-hero">
           <header className="page-header page-header--centered">
-            <section className="tile tile--title-banner" aria-label="League">
-              <h1 className="page-title-main">{LEAGUE_TITLE}</h1>
-              <h2 className="page-title-season">{LEAGUE_SEASON_SUB}</h2>
-            </section>
-            <div className="header-team-strip" aria-label="League teams">
-              {teamsForFormSelect.map((t) => (
-                <div key={t.id} className="header-team-strip__item" title={t.teamName}>
-                  <TeamAvatar entryId={t.id} name={t.teamName} size="header" logoMap={teamLogoMap} />
-                </div>
-              ))}
+            <div className="title-hero-row">
+              <section className="tile tile--title-banner" aria-label="League">
+                <h1 className="page-title-main">{LEAGUE_TITLE}</h1>
+                <h2 className="page-title-season">{LEAGUE_SEASON_SUB}</h2>
+              </section>
+              <div className="header-team-strip" aria-label="League teams">
+                {teamsForFormSelect.map((t) => (
+                  <div key={t.id} className="header-team-strip__item" title={t.teamName}>
+                    <TeamAvatar entryId={t.id} name={t.teamName} size="header" logoMap={teamLogoMap} />
+                  </div>
+                ))}
+              </div>
             </div>
             {fetchFailedDemo && (
               <div className="data-banner data-banner--error" role="alert">
@@ -563,7 +585,7 @@ function App() {
         </nav>
         <div className="dashboard-content">
           {dashboardView === 'standings' && (
-            <>
+            <div className="standings-page">
               <section
                 className="tile tile--standings"
                 aria-labelledby="standings-heading"
@@ -573,6 +595,9 @@ function App() {
                 Standings
               </h2>
             </div>
+            <p className="standings-landscape-hint muted" role="note">
+              Rotate to landscape for the full table (W/D/L, Faced, GD, Form, Next).
+            </p>
             <div className="table-scroll table-scroll--standings-open">
               <table className="standings-table standings-table--sidebar">
                 <thead>
@@ -580,9 +605,9 @@ function App() {
                     <th className="col-rank">#</th>
                     <th className="col-team">Team</th>
                     <th className="col-num">PL</th>
-                    <th className="col-num">W</th>
-                    <th className="col-num">D</th>
-                    <th className="col-num">L</th>
+                    <th className="col-num col-hide-portrait">W</th>
+                    <th className="col-num col-hide-portrait">D</th>
+                    <th className="col-num col-hide-portrait">L</th>
                     <th
                       className="col-num col-for"
                       title="Your team’s total FPL points in every H2H gameweek"
@@ -590,15 +615,15 @@ function App() {
                       For
                     </th>
                     <th
-                      className="col-num col-faced"
+                      className="col-num col-faced col-hide-portrait"
                       title="Opponents’ total FPL points in every H2H gameweek"
                     >
                       Faced
                     </th>
-                    <th className="col-num">GD</th>
+                    <th className="col-num col-hide-portrait">GD</th>
                     <th className="col-num col-pts">PTS</th>
-                    <th className="col-form">Form</th>
-                    <th className="col-next">Nxt</th>
+                    <th className="col-form col-hide-portrait">Form</th>
+                    <th className="col-next col-hide-portrait">Nxt</th>
                   </tr>
                 </thead>
                 <tbody className="standings-tbody--upper">
@@ -677,9 +702,14 @@ function App() {
               </div>
             </div>
             <p className="tile-hint muted tile-hint--tight">
-              {selectedFormTeamName
-                ? `${selectedFormTeamName} · last ${formStripRows.length} matches (FPL pts)`
-                : '—'}
+              {selectedFormTeamName ? (
+                <>
+                  <span className="team-name team-name--standings">{selectedFormTeamName}</span>
+                  {` · last ${formStripRows.length} matches (FPL pts)`}
+                </>
+              ) : (
+                '—'
+              )}
             </p>
             <div className="form-strip form-strip--tight">
               {formStripRows.length ? (
@@ -721,7 +751,7 @@ function App() {
                       size="sm"
                       logoMap={teamLogoMap}
                     />
-                    <span className="pa-team">{row.teamName}</span>
+                    <span className="pa-team team-name team-name--standings">{row.teamName}</span>
                     <span className="pa-value tabular">{row.pointsAgainst}</span>
                   </li>
                 ))}
@@ -782,7 +812,9 @@ function App() {
                               size="sm"
                               logoMap={teamLogoMap}
                             />
-                            <span className="win-margin-table__name">{row.teamName}</span>
+                            <span className="win-margin-table__name team-name team-name--standings">
+                              {row.teamName}
+                            </span>
                           </span>
                         </th>
                         {WIN_MARGIN_BUCKET_KEYS.map((k) => (
@@ -854,7 +886,9 @@ function App() {
                               size="sm"
                               logoMap={teamLogoMap}
                             />
-                            <span className="win-margin-table__name">{row.teamName}</span>
+                            <span className="win-margin-table__name team-name team-name--standings">
+                              {row.teamName}
+                            </span>
                           </span>
                         </th>
                         {WIN_MARGIN_BUCKET_KEYS.map((k) => (
@@ -875,7 +909,7 @@ function App() {
             )}
           </section>
               </div>
-            </>
+            </div>
           )}
 
           {dashboardView === 'waivers' && (
