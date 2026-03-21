@@ -238,12 +238,13 @@ function sumStarterPoints(starters) {
   return starters.reduce((acc, r) => acc + (Number(r.total_points) || 0), 0);
 }
 
-/** Draft picks often omit `entry_history.points`; fall back to XI sum from live stats. */
+/** Draft picks often omit `entry_history.points`; fall back to effective XI sum from live stats. */
 function liveGwDisplayTotal(squad) {
   if (!squad || squad.error) return null;
   if (squad.gwPoints != null) return squad.gwPoints;
-  if (!squad.starters?.length) return null;
-  return sumStarterPoints(squad.starters);
+  const xi = squad.displayStarters ?? squad.starters;
+  if (!xi?.length) return null;
+  return sumStarterPoints(xi);
 }
 
 function teamNameForEntry(teams, leagueEntryId) {
@@ -258,15 +259,23 @@ function SquadLineupPanel({ squad, portraitLineup }) {
   if (squad.error) {
     return <p className="muted">{squad.error}</p>;
   }
+  const lineupStarters = squad.displayStarters ?? squad.starters;
+  const lineupBench = squad.displayBench ?? squad.bench;
+  const allRows = [...squad.starters, ...squad.bench];
+
+  const showOfficialAutoSubs = squad.usedOfficialAutoSubs === true;
+  const autoSubList = showOfficialAutoSubs
+    ? (squad.autoSubs ?? [])
+    : (squad.projectedAutoSubs ?? []);
+
   return (
     <>
-      {squad.autoSubs?.length ? (
+      {autoSubList.length ? (
         <div className="live-auto-subs muted" role="status">
-          <strong>Auto subs:</strong>{' '}
-          {squad.autoSubs.map((a) => {
-            const all = [...squad.starters, ...squad.bench];
-            const rowIn = all.find((r) => r.element === Number(a.element_in));
-            const rowOut = all.find((r) => r.element === Number(a.element_out));
+          <strong>{showOfficialAutoSubs ? 'Auto subs' : 'Projected auto subs'}:</strong>{' '}
+          {autoSubList.map((a) => {
+            const rowIn = allRows.find((r) => r.element === Number(a.element_in));
+            const rowOut = allRows.find((r) => r.element === Number(a.element_out));
             const nameIn = rowIn?.displayName ?? rowIn?.web_name ?? `#${a.element_in}`;
             const nameOut = rowOut?.displayName ?? rowOut?.web_name ?? `#${a.element_out}`;
             return (
@@ -278,9 +287,9 @@ function SquadLineupPanel({ squad, portraitLineup }) {
         </div>
       ) : null}
       <h4 className="live-lineup-heading">Starting XI</h4>
-      <PicksTable rows={squad.starters} portraitLineup={portraitLineup} />
+      <PicksTable rows={lineupStarters} portraitLineup={portraitLineup} />
       <h4 className="live-lineup-heading live-lineup-heading--bench">Bench</h4>
-      <PicksTable rows={squad.bench} portraitLineup={portraitLineup} />
+      <PicksTable rows={lineupBench} portraitLineup={portraitLineup} />
     </>
   );
 }

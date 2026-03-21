@@ -5,6 +5,7 @@ import {
   hasTwoDefensiveContributionPoints,
   defensiveContributionPointsFromLiveRow,
 } from './fplBonusFromBps.js';
+import { computeEffectiveLineup } from './fplAutoSubs.js';
 
 /** Classic host — only used when resolving `fplApiBase()` with no proxy / non-dev. */
 const FPL_DIRECT = 'https://fantasy.premierleague.com/api';
@@ -369,9 +370,14 @@ export function useLiveScores({ teams, gameweek, enabled, onBootstrapLiveMeta })
                 'Missing FPL entry id in league data (need real details.json with entry_id).',
               starters: [],
               bench: [],
+              displayStarters: [],
+              displayBench: [],
               gwPoints: null,
               pointsOnBench: null,
               autoSubs: [],
+              projectedAutoSubs: [],
+              effectiveAutoSubs: [],
+              usedOfficialAutoSubs: false,
               leftToPlayCount: 0,
             };
           }
@@ -386,9 +392,14 @@ export function useLiveScores({ teams, gameweek, enabled, onBootstrapLiveMeta })
               error: `Draft picks HTTP ${pr.status}`,
               starters: [],
               bench: [],
+              displayStarters: [],
+              displayBench: [],
               gwPoints: null,
               pointsOnBench: null,
               autoSubs: [],
+              projectedAutoSubs: [],
+              effectiveAutoSubs: [],
+              usedOfficialAutoSubs: false,
               leftToPlayCount: 0,
             };
           }
@@ -412,7 +423,15 @@ export function useLiveScores({ teams, gameweek, enabled, onBootstrapLiveMeta })
             eh && typeof eh.points_on_bench === 'number' ? eh.points_on_bench : null;
           const autoSubs = picksPayload.automatic_subs ?? picksPayload.subs ?? [];
 
-          const sumXi = starters.reduce((s, r) => s + (Number(r.total_points) || 0), 0);
+          const {
+            displayStarters,
+            displayBench,
+            projectedAutoSubs,
+            effectiveAutoSubs,
+            usedOfficialAutoSubs,
+          } = computeEffectiveLineup(starters, bench, autoSubs);
+
+          const sumXi = displayStarters.reduce((s, r) => s + (Number(r.total_points) || 0), 0);
           /** Align banner with Pts column (bonus-adjusted), not raw entry_history. */
           const gwPoints = sumXi;
 
@@ -425,9 +444,14 @@ export function useLiveScores({ teams, gameweek, enabled, onBootstrapLiveMeta })
             error: null,
             starters,
             bench,
+            displayStarters,
+            displayBench,
             gwPoints,
             pointsOnBench,
             autoSubs,
+            projectedAutoSubs,
+            effectiveAutoSubs,
+            usedOfficialAutoSubs,
             leftToPlayCount,
           };
         }),
