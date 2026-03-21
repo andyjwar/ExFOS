@@ -99,8 +99,20 @@ function livePickPositiveClass(n) {
   return Number(n) > 0 ? 'live-pick-cell--green' : '';
 }
 
-function PicksTable({ rows, portraitLineup }) {
+/** @param {{ element_in?: unknown, element_out?: unknown }[]} pairs */
+function buildAutoSubElementSets(pairs) {
+  const ins = new Set();
+  const outs = new Set();
+  for (const p of pairs || []) {
+    if (p?.element_in != null) ins.add(Number(p.element_in));
+    if (p?.element_out != null) outs.add(Number(p.element_out));
+  }
+  return { ins, outs };
+}
+
+function PicksTable({ rows, portraitLineup, autosubPairs = [] }) {
   if (!rows.length) return <p className="muted muted--tight">No picks</p>;
+  const { ins: autoSubInIds, outs: autoSubOutIds } = buildAutoSubElementSets(autosubPairs);
   return (
     <div
       className={`table-scroll${portraitLineup ? ' live-picks-table-wrap--lineup-portrait' : ''}`}
@@ -162,6 +174,15 @@ function PicksTable({ rows, portraitLineup }) {
                 ? shortLineupName(r.displayName)
                 : (r.displayName ?? r.web_name);
             const fullTitle = `${r.web_name} · #${r.element}${r.teamName ? ` · ${r.teamName}` : ''}`;
+            const elId = Number(r.element);
+            const subIn = autoSubInIds.has(elId);
+            const subOut = autoSubOutIds.has(elId);
+            const autoSubbed = subIn || subOut;
+            const autoSubTitle = subIn
+              ? 'Brought in by automatic substitution'
+              : subOut
+                ? 'Substituted out by automatic substitution'
+                : 'Automatic substitution';
             return (
               <tr
                 key={`${r.pickPosition}-${r.element}`}
@@ -190,6 +211,16 @@ function PicksTable({ rows, portraitLineup }) {
                             role="img"
                           >
                             🚑
+                          </span>
+                        ) : null}
+                        {autoSubbed ? (
+                          <span
+                            className="live-player-autosub"
+                            title={autoSubTitle}
+                            aria-label={autoSubTitle}
+                            role="img"
+                          >
+                            🔄
                           </span>
                         ) : null}
                       </div>
@@ -281,6 +312,8 @@ function SquadLineupPanel({ squad, portraitLineup }) {
   const autoSubList = showOfficialAutoSubs
     ? (squad.autoSubs ?? [])
     : (squad.projectedAutoSubs ?? []);
+  /** Same pairs as the banner; fallback for older squad shapes without `effectiveAutoSubs`. */
+  const autosubPairsForRows = squad.effectiveAutoSubs ?? autoSubList;
 
   return (
     <>
@@ -301,9 +334,17 @@ function SquadLineupPanel({ squad, portraitLineup }) {
         </div>
       ) : null}
       <h4 className="live-lineup-heading">Starting XI</h4>
-      <PicksTable rows={lineupStarters} portraitLineup={portraitLineup} />
+      <PicksTable
+        rows={lineupStarters}
+        portraitLineup={portraitLineup}
+        autosubPairs={autosubPairsForRows}
+      />
       <h4 className="live-lineup-heading live-lineup-heading--bench">Bench</h4>
-      <PicksTable rows={lineupBench} portraitLineup={portraitLineup} />
+      <PicksTable
+        rows={lineupBench}
+        portraitLineup={portraitLineup}
+        autosubPairs={autosubPairsForRows}
+      />
     </>
   );
 }

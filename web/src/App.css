@@ -1755,6 +1755,12 @@ button.live-fixture-banner--toggle {
   line-height: 1;
 }
 
+.live-player-autosub {
+  flex-shrink: 0;
+  font-size: 1em;
+  line-height: 1;
+}
+
 .live-player-club {
   font-size: 0.72rem;
 }
