@@ -1165,8 +1165,9 @@ button.live-fixture-banner--toggle {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  /* Team names + score line share one size */
-  --live-fixture-score-font: 1.35rem;
+  /* Reference: team names bold & smaller; score digits ~1.7–2× taller */
+  --live-fixture-team-font: 1rem;
+  --live-fixture-score-font: 1.875rem;
 }
 
 /* Main row only — caption lives inside the score column so it lines up under the numbers. */
@@ -1185,7 +1186,7 @@ button.live-fixture-banner--toggle {
 .live-fixture-banner__grid {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--live-fixture-score-col, 8.25rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) var(--live-fixture-score-col, 9.25rem) minmax(0, 1fr);
   align-items: center;
   gap: 8px 6px;
 }
@@ -1273,8 +1274,8 @@ button.live-fixture-banner--toggle {
 
 .live-fixture-banner__name {
   font-weight: 700;
-  font-size: var(--live-fixture-score-font);
-  line-height: 1.12;
+  font-size: var(--live-fixture-team-font);
+  line-height: 1.2;
   word-break: break-word;
 }
 
@@ -1298,7 +1299,7 @@ button.live-fixture-banner--toggle {
   font-size: var(--live-fixture-score-font);
   font-weight: 800;
   letter-spacing: 0.02em;
-  line-height: 1.12;
+  line-height: 1.05;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1315,7 +1316,8 @@ button.live-fixture-banner--toggle {
   margin: 0;
   padding: 0;
   width: 100%;
-  font-size: 0.68rem;
+  /* ~½× team name size */
+  font-size: max(0.65rem, calc(var(--live-fixture-team-font) * 0.5));
   text-transform: uppercase;
   letter-spacing: 0.03em;
   text-align: center;
@@ -1327,7 +1329,7 @@ button.live-fixture-banner--toggle {
 }
 
 .live-fixture-vs {
-  font-size: 1rem;
+  font-size: var(--live-fixture-score-font);
   font-weight: 700;
   opacity: 0.5;
 }
